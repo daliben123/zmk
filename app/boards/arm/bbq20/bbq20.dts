@@ -24,15 +24,14 @@
         zmk,battery = &vbatt;
         zmk,kscan = &kscan0;
         zmk,matrix_transform = &default_transform;
-        zmk,led_indicator = &indi_led_indicator;
         zmk,backlight = &backlight;
     };
 
 
-  indi_led_indicator: pwmledt {
+    backlight: pwmleds {
         compatible = "pwm-leds";
         pwm_led_0 {
-            pwms = <&pwm0 0 PWM_USEC(20) PWM_POLARITY_NORMAL>;
+            pwms = <&pwm0 0 PWM_MSEC(10) PWM_POLARITY_NORMAL>;
         };
     };
 

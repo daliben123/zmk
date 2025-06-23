@@ -1,35 +1,34 @@
+
 &i2c0 {
     a320@3b {
         compatible = "avago,a320";
         status = "okay";
         reg = <0x3B>;
-        reset-gpios = <&gpio0 0 GPIO_ACTIVE_LOW>; 
-        motion-gpios = <&gpio1 7 GPIO_ACTIVE_HIGH>; 
     };
     
-    label = "I2C_0";
-    compatible = "nordic,nrf-twim";
-    status = "okay";
-    clock-frequency = <I2C_BITRATE_FAST>; 
-    pinctrl-0 = <&i2c0_default>;
-    pinctrl-1 = <&i2c0_sleep>;
-    pinctrl-names = "default", "sleep";
+	label = "I2C_0";
+	compatible = "nordic,nrf-twim";
+	status = "okay";
+	clock-frequency = <I2C_BITRATE_FAST>; 
+	pinctrl-0 = <&i2c0_default>;
+	pinctrl-1 = <&i2c0_sleep>;
+	pinctrl-names = "default", "sleep";
 };
 
 &pinctrl {
     i2c0_default: i2c0_default {
-        group1 {
-            psels = <NRF_PSEL(TWIM_SDA, 0, 17)>,
-                    <NRF_PSEL(TWIM_SCL, 0, 20)>;
-            bias-pull-up;
-        };
-    };
-    i2c0_sleep: i2c0_sleep {
-        group1 {
-            psels = <NRF_PSEL(TWIM_SDA, 0, 17)>,
-                    <NRF_PSEL(TWIM_SCL, 0, 20)>;
-            low-power-enable;
-            bias-pull-up;
-        };
-    };
+		group1 {
+			psels = <NRF_PSEL(TWIM_SDA, 0, 17)>,
+				<NRF_PSEL(TWIM_SCL, 0, 20)>;
+			bias-pull-up;
+		};
+	};
+	i2c0_sleep: i2c0_sleep {
+		group1 {
+			psels = <NRF_PSEL(TWIM_SDA, 0, 17)>,
+				<NRF_PSEL(TWIM_SCL, 0, 20)>;
+			low-power-enable;
+			bias-pull-up;
+		};
+	};
 };

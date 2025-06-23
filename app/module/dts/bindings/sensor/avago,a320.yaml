@@ -1,3 +1,4 @@
+
 description: Avago A320 TouchPad Driver
 
 compatible: "avago,a320"
@@ -5,11 +6,11 @@ compatible: "avago,a320"
 include: i2c-device.yaml
 
 properties:
-    reset-gpios:
+    nrst-gpios:
       type: phandle-array
       required: false
       description: |
-        reset pin
+        nrst pin
 
     motion-gpios:
       type: phandle-array

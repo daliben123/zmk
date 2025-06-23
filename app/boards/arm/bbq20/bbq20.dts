@@ -54,8 +54,8 @@ RC(2,3)          RC(2,1)             RC(3,1)             RC(4,1)          RC(6,2
         diode-direction = "col2row";
         row-gpios
             = <&gpio0 8 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio0 17  (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio0 20 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 1  (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             , <&gpio0 22  (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             , <&gpio0 11  (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             , <&gpio1 4 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>

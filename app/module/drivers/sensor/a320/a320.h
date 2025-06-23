@@ -1,3 +1,4 @@
+
 #pragma once
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
@@ -31,13 +32,13 @@ static const struct a320_config a320_cfg_0 = {
     .nrst_gpio = GPIO_DT_SPEC_INST_GET(0, reset_gpios),
 #endif
 #if DT_INST_NODE_HAS_PROP(0, motion_gpios)
-    .motion_gpio = GPIO_DT_SPEC_INST_GET(0, motion_gpios),
+    .motion_gpio = GPIO_DT_SPEC_INST_GET(0, reset_gpios),
 #endif
 #if DT_INST_NODE_HAS_PROP(0, orient_gpios)
-    .orient_gpio = GPIO_DT_SPEC_INST_GET(0, orient_gpios),
+    .orient_gpio = GPIO_DT_SPEC_INST_GET(0, reset_gpios),
 #endif
 #if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
-    .shutdown_gpio = GPIO_DT_SPEC_INST_GET(0,shutdown_gpios),
+    .shutdown_gpio = GPIO_DT_SPEC_INST_GET(0, reset_gpios),
 #endif
 };
 

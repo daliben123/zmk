@@ -1,9 +1,15 @@
-file_format: "1"
-id: bbcase
+identifier: bbcase
 name: bbcase
-type: board
+type: mcu
 arch: arm
-outputs:
-  - usb
-url: https://www.adafruit.com/product/5302
-exposes: [pro_micro]
+toolchain:
+  - zephyr
+  - gnuarmemb
+  - xtools
+supported:
+  - adc
+  - usb_device
+  - ble
+  - ieee802154
+  - pwm
+  - watchdog

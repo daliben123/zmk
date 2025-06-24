@@ -1,95 +1,25 @@
 /*
- * Copyright (c) 2023 The ZMK Contributors
+ * Copyright (c) 2021 The ZMK Contributors
  *
- * SPDX-License-Identifier: Apache-2.0
+ * SPDX-License-Identifier: MIT
  */
 
 /dts-v1/;
-
-#include <rpi_pico/rp2040.dtsi>
-#include "bbcase-pinctrl.dtsi"
-#include <dt-bindings/zmk/matrix_transform.h>
-#include <freq.h>
+#include "nice_nano.dtsi"
 
 / {
-
     chosen {
-        zephyr,sram = &sram0;
-        zephyr,flash = &flash0;
-        zephyr,console = &cdc_acm_uart;
-        zephyr,shell-uart = &cdc_acm_uart;
-        zephyr,code-partition = &code_partition;
-        zmk,kscan = &kscan0;
-        zmk,matrix_transform = &default_transform;
+        zmk,battery = &vbatt;
     };
 
-    xtal_clk: xtal-clk {
-        compatible = "fixed-clock";
-        clock-frequency = <12000000>;
-        #clock-cells = <0>;
+    // Node name must match original "EXT_POWER" label to preserve user settings.
+    EXT_POWER {
+        compatible = "zmk,ext-power-generic";
+        control-gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+        init-delay-ms = <50>;
     };
 
-
-    default_transform: keymap_transform_0 {
-        compatible = "zmk,matrix-transform";
-        columns = <1>;
-        rows = <1>;
-        map = <
-        RC(0,0)
-        >;
-    };
-
-    kscan0: kscan {
-        compatible = "zmk,kscan-gpio-matrix";
-
-        diode-direction = "col2row";
-        row-gpios
-            = <&gpio0 6 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            ;
-        col-gpios
-            = <&gpio0 7 GPIO_ACTIVE_HIGH>
-            ;
-    };
-
-
-};
-
-
-&flash0 {
-    reg = <0x10000000 DT_SIZE_M(16)>;
-
-    partitions {
-        compatible = "fixed-partitions";
-        #address-cells = <1>;
-        #size-cells = <1>;
-
-        /* Reserved memory for the second stage bootloader */
-        second_stage_bootloader: partition@0 {
-            reg = <0x00000000 0x100>;
-            read-only;
-        };
-
-        /*
-         * Usable flash. Starts at 0x100, after the bootloader. The partition
-         * size is 16MB minus the 0x100 bytes taken by the bootloader.
-         */
-        code_partition: partition@100 {
-            reg = <0x100 (DT_SIZE_M(16) - 0x100)>;
-            read-only;
-        };
+    vbatt: vbatt {
+        compatible = "zmk,battery-nrf-vddh";
     };
 };
-
-
-&usbd {
-  status = "okay";
-  cdc_acm_uart: cdc_acm_uart {
-    compatible = "zephyr,cdc-acm-uart";
-  };
-};
-
-
-&gpio0 {
-    status = "okay";
-};
-

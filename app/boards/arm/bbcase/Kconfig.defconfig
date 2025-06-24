@@ -6,10 +6,14 @@ if BOARD_BBCASE
 config BOARD
 	default "bbcase"
 
-config RP2_FLASH_W25Q080
-	default y
+if USB_DEVICE_STACK
 
-config ZMK_USB
-	default y
+config USB_NRFX
+    default y
+
+endif # USB_DEVICE_STACK
+
+config BT_CTLR
+    default BT
 
 endif # BOARD_BBCASE

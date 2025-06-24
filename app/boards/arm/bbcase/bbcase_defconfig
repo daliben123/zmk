@@ -1,46 +1,28 @@
-# Copyright (c) 2023 The ZMK Contributors
+
 # SPDX-License-Identifier: MIT
 
-# Basic Setting of RP2040
-CONFIG_SOC_SERIES_RP2XXX=y
-CONFIG_SOC_RP2040=y
-CONFIG_BOARD_BBCASE=y
-CONFIG_SYS_CLOCK_HW_CYCLES_PER_SEC=240000000
+CONFIG_SOC_SERIES_NRF52X=y
+CONFIG_SOC_NRF52840_QIAA=y
+CONFIG_BOARD_NICE_NANO_V2=y
+
+# Enable MPU
+CONFIG_ARM_MPU=y
+
+# Use pinctrl
 CONFIG_PINCTRL=y
 
-# Output UF2 by default, native bootloader supports it.
+# enable GPIO
+CONFIG_GPIO=y
+
+CONFIG_USE_DT_CODE_PARTITION=y
 CONFIG_BUILD_OUTPUT_UF2=y
 
-# Sleep Setting
-CONFIG_ZMK_SLEEP=n
-CONFIG_ZMK_EXT_POWER=y
-CONFIG_ZMK_IDLE_TIMEOUT=30000
-  
+CONFIG_MPU_ALLOW_FLASH_WRITE=y
+CONFIG_NVS=y
+CONFIG_SETTINGS_NVS=y
+CONFIG_FLASH=y
+CONFIG_FLASH_PAGE_LAYOUT=y
+CONFIG_FLASH_MAP=y
 
-# Enable Mouse Emulation
-CONFIG_ZMK_MOUSE=y
-# Mouse Speed Multiplier in horizontal direction
-CONFIG_TRACKPAD_SPEEDMULTIPLIER_HORIZONTAL=1
-# Mouse Speed Multiplier in vertical direction
-CONFIG_TRACKPAD_SPEEDMULTIPLIER_VERTICAL=1
-
-# Debuncing Setting 
-CONFIG_ZMK_KSCAN_DEBOUNCE_PRESS_MS=10
-CONFIG_ZMK_KSCAN_DEBOUNCE_RELEASE_MS=10
-
-# HID indicator configuration
-CONFIG_ZMK_HID_INDICATORS=y
-
-
-# Enable reset by default
-CONFIG_RESET=y
-CONFIG_PWM=y
-
-# Code partition needed to target the correct flash range
-CONFIG_USE_DT_CODE_PARTITION=y
-
-#USB Output
+CONFIG_ZMK_BLE=y
 CONFIG_ZMK_USB=y
-
-# Enable USB CDC ACM logging for debugging
-CONFIG_ZMK_USB_LOGGING=y

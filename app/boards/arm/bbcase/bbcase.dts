@@ -5,7 +5,7 @@
  */
 
 /dts-v1/;
-#include "nice_nano.dtsi"
+#include "bbcase.dtsi"
 
 / {
     chosen {

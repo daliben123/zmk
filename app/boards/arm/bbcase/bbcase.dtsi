@@ -5,7 +5,7 @@
  */
 
 #include <nordic/nrf52840_qiaa.dtsi>
-#include "nice_nano-pinctrl.dtsi"
+#include "bbcase-pinctrl.dtsi"
 #include "arduino_pro_micro_pins.dtsi"
 
 / {

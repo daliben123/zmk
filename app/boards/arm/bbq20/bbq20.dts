@@ -98,13 +98,6 @@ RC(2,3)          RC(2,1)             RC(3,1)             RC(4,1)          RC(6,2
     status = "okay";
 };
 
-&pwm0 {
-    status = "okay";
-    pinctrl-0 = <&pwm0_default>;
-    pinctrl-1 = <&pwm0_sleep>;
-    pinctrl-names = "default", "sleep";
-};
-
 &pwm1 {
     status = "okay";
     pinctrl-0 = <&pwm1_default>;

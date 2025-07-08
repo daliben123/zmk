@@ -1,9 +1,9 @@
-
 #pragma once
 #include <zephyr/device.h>
 #include <zephyr/kernel.h>
 #include <zephyr/drivers/gpio.h>
 #include <zephyr/drivers/i2c.h>
+
 struct a320_data {
     uint16_t x_position;
     uint16_t y_position;
@@ -29,19 +29,18 @@ struct a320_config {
 static const struct a320_config a320_cfg_0 = {
     .bus = I2C_DT_SPEC_INST_GET(0),
 #if DT_INST_NODE_HAS_PROP(0, nrst_gpios)
-    .nrst_gpio = GPIO_DT_SPEC_INST_GET(0, reset_gpios),
+    .nrst_gpio = GPIO_DT_SPEC_INST_GET(0, nrst_gpios), // 修正为 nrst_gpios
 #endif
 #if DT_INST_NODE_HAS_PROP(0, motion_gpios)
-    .motion_gpio = GPIO_DT_SPEC_INST_GET(0, reset_gpios),
+    .motion_gpio = GPIO_DT_SPEC_INST_GET(0, motion_gpios), // 修正为 motion_gpios
 #endif
 #if DT_INST_NODE_HAS_PROP(0, orient_gpios)
-    .orient_gpio = GPIO_DT_SPEC_INST_GET(0, reset_gpios),
+    .orient_gpio = GPIO_DT_SPEC_INST_GET(0, orient_gpios), // 修正为 orient_gpios
 #endif
 #if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
-    .shutdown_gpio = GPIO_DT_SPEC_INST_GET(0, reset_gpios),
+    .shutdown_gpio = GPIO_DT_SPEC_INST_GET(0, shutdown_gpios), // 修正为 shutdown_gpios
 #endif
 };
-
 // A320 Register Defines
 #define Product_ID 0x00
 #define Revision_ID 0x01

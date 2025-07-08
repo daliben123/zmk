@@ -5,9 +5,9 @@ include:
 
 properties:
   reg:
-    type: int
+    type: array
     required: true
-    description: I2C device address (e.g., 0x42)
+    description: I2C device address (e.g., [0x42])
 
   resolution:
     type: int
@@ -19,8 +19,8 @@ properties:
     required: false
     description: Hardware reset pin (active-low)
     flags:
-      - gpio-controller  # 指定为GPIO控制器
-      - input             # 输入模式
+      - gpio-controller
+      - input
 
   motion-gpios:
     type: phandle-array
@@ -28,13 +28,10 @@ properties:
     description: Motion detection interrupt pin
     flags:
       - gpio-controller
-      - input             # 中断需配置为输入
+      - input
 
-# 删除未使用的GPIO属性（orient/shutdown） 
-# --- 原因：驱动代码未实现orient/shutdown功能 ---
-
-required:  # 必需属性列表
+required:
   - reg
   - resolution
 
-additionalProperties: false  # 禁止未定义属性
+additionalProperties: false

@@ -1,37 +1,31 @@
-description: Avago A320 Optical Navigation Sensor Driver
+
+description: Avago A320 TouchPad Driver
+
 compatible: "avago,a320"
-include: 
-  - i2c-device.yaml  # 继承I2C设备基础属性
+
+include: i2c-device.yaml
 
 properties:
-  reg:
-    type: array
-    required: true
-    description: I2C device address (e.g., [0x42])
+    nrst-gpios:
+      type: phandle-array
+      required: false
+      description: |
+        nrst pin
 
-  resolution:
-    type: int
-    required: true
-    description: CPI resolution value (100–1200)
+    motion-gpios:
+      type: phandle-array
+      required: false
+      description: |
+        motion pin
 
-  nrst-gpios:
-    type: phandle-array
-    required: false
-    description: Hardware reset pin (active-low)
-    flags:
-      - gpio-controller
-      - input
+    orient-gpios:
+      type: phandle-array
+      required: false
+      description: |
+        orient pin
 
-  motion-gpios:
-    type: phandle-array
-    required: false
-    description: Motion detection interrupt pin
-    flags:
-      - gpio-controller
-      - input
-
-required:
-  - reg
-  - resolution
-
-additionalProperties: false
+    shutdown-gpios:
+      type: phandle-array
+      required: false
+      description: |
+        shutdown pin

@@ -6,23 +6,87 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(A320, CONFIG_SENSOR_LOG_LEVEL);
 
-/* 中断处理函数（不变） */
+/* 中断处理函数 */
 static void a320_motion_handler(const struct device *dev) {
     struct a320_data *data = dev->data;
-    k_sem_give(&data->data_sem);
+    k_sem_give(&data->data_sem); // 触发数据采集
 }
 
-/* 寄存器安全访问（不变） */
-static int a320_reg_access(...) { /* 保持原实现 */ }
+/* 寄存器安全访问 */
+static int a320_reg_access(const struct device *dev, 
+                          uint8_t reg, uint8_t *val, bool write) {
+    const struct a320_config *cfg = dev->config;
+    k_mutex_lock(&cfg->i2c_mutex, K_FOREVER);
+    
+    int ret = write ? i2c_reg_write_byte_dt(&cfg->bus, reg, *val)
+                   : i2c_reg_read_byte_dt(&cfg->bus, reg, val);
+    
+    k_mutex_unlock(&cfg->i2c_mutex);
+    return ret;
+}
 
-/* 数据采集（不变） */
-static int a320_sample_fetch(...) { /* 保持原实现 */ }
+/* 数据采集（中断驱动） */
+static int a320_sample_fetch(const struct device *dev, 
+                            enum sensor_channel chan) {
+    struct a320_data *data = dev->data;
+    uint8_t status;
+    int ret;
 
-/* 返回原始位移计数（不变） */
-static int a320_channel_get(...) { /* 保持原实现 */ }
+    // 等待运动中断触发
+    if (k_sem_take(&data->data_sem, K_MSEC(100))) {
+        return -ETIMEDOUT;
+    }
 
-/* 动态配置采样率（不变） */
-static int a320_attr_set(...) { /* 保持原实现 */ }
+    // 读取运动状态
+    ret = a320_reg_access(dev, A320_REG_MOTION, &status, false);
+    if (ret) return ret;
+
+    // 错误检测
+    if (status & A320_BIT_MOTION_OVF) {
+        LOG_WRN("Data overflow");
+        return -EOVERFLOW;
+    }
+
+    // 直接存储原始位移计数（无单位转换）
+    ret = a320_reg_access(dev, A320_REG_DELTA_X, (uint8_t*)&data->delta_x, false);
+    ret |= a320_reg_access(dev, A320_REG_DELTA_Y, (uint8_t*)&data->delta_y, false);
+    return ret;
+}
+
+/* 返回原始位移计数（无单位转换） */
+static int a320_channel_get(const struct device *dev,
+                           enum sensor_channel chan,
+                           struct sensor_value *val) {
+    struct a320_data *data = dev->data;
+    switch (chan) {
+    case SENSOR_CHAN_POS_DX:
+        val->val1 = data->delta_x;  // 原生X位移计数
+        val->val2 = 0;
+        break;
+    case SENSOR_CHAN_POS_DY:
+        val->val1 = data->delta_y;  // 原生Y位移计数
+        val->val2 = 0;
+        break;
+    default:
+        return -ENOTSUP;
+    }
+    return 0;
+}
+
+/* 动态配置采样率（100-2000Hz） */
+static int a320_attr_set(const struct device *dev,
+                        enum sensor_channel chan,
+                        enum sensor_attribute attr,
+                        const struct sensor_value *val) {
+    if (chan != SENSOR_CHAN_ALL) return -ENOTSUP;
+    
+    if (attr == SENSOR_ATTR_SAMPLING_FREQUENCY) {
+        uint16_t rate = sensor_value_to_milli(val);
+        uint8_t reg_val = CLAMP(rate / 100, 0x01, 0x14); // 100Hz-2000Hz
+        return a320_reg_access(dev, A320_REG_CONFIG, &reg_val, true);
+    }
+    return -ENOTSUP;
+}
 
 /* ================ 关键修改部分 ================ */
 /* 硬件复位函数 - 严格100ms时序 */

@@ -11,16 +11,10 @@ struct a320_data {
 };
 
 struct a320_config {
-    struct i2c_dt_spec bus;     // I2C总线配置
-#if DT_INST_NODE_HAS_PROP(0, nrst_gpios)
-    struct gpio_dt_spec nrst_gpio; // 复位引脚
-#endif
-#if DT_INST_NODE_HAS_PROP(0, motion_gpios)
-    struct gpio_dt_spec motion_gpio; // 运动检测引脚
-#endif
-#if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
-    struct gpio_dt_spec shutdown_gpio; // 关机引脚
-#endif
+    struct i2c_dt_spec bus;  // I²C总线配置
+    struct gpio_dt_spec nrst_gpio;  // 复位引脚[6](@ref)
+    struct gpio_dt_spec motion_gpio;  // 运动检测引脚
+    struct gpio_dt_spec shutdown_gpio;  // 电源控制引脚
 };
 
 // 寄存器定义

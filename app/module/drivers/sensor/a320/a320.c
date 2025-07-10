@@ -170,15 +170,16 @@ static int a320_init(const struct device *dev) {
 }
 
 /* 设备实例定义 */
-#define A320_DEFINE(inst)                                                                          \
-    static struct a320_data a320_data_##inst;                                                      \
-    static const struct a320_config a320_cfg_##inst = {                                            \
-        .bus = I2C_DT_SPEC_INST_GET(inst),                                                         \
-        DT_INST_GPIO_CFG_GET(inst, nrst_gpios),                                                    \
-        DT_INST_GPIO_CFG_GET(inst, motion_gpios),                                                  \
-        DT_INST_GPIO_CFG_GET(inst, shutdown_gpios),                                                \
-    };                                                                                             \
-    DEVICE_DT_INST_DEFINE(inst, a320_init, NULL, &a320_data_##inst, &a320_cfg_##inst,              \
-                          POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY, &a320_driver_api);
+#define A320_DEFINE(inst)                                                  \
+    static struct a320_data a320_data_##inst;                              \
+    static const struct a320_config a320_cfg_##inst = {                    \
+        .bus = I2C_DT_SPEC_INST_GET(inst),                                \
+        .nrst_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, nrst_gpios, {0}),     \
+        .motion_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, motion_gpios, {0}), \
+        .shutdown_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, shutdown_gpios, {0}) \
+    };                                                                     \
+    DEVICE_DT_INST_DEFINE(inst, a320_init, NULL, &a320_data_##inst,        \
+                          &a320_cfg_##inst, POST_KERNEL,                   \
+                          CONFIG_SENSOR_INIT_PRIORITY, &a320_driver_api);
 
 DT_INST_FOREACH_STATUS_OKAY(A320_DEFINE)

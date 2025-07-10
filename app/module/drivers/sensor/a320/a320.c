@@ -46,7 +46,7 @@ static int a320_hardware_reset(const struct device *dev) {
         LOG_ERR("复位引脚设置失败");
         return ret;
     }
-    k_msleep(10); // 精确延时确保完全复位
+    k_msleep(100); // 精确延时确保完全复位
     
     // 释放复位
     ret = gpio_pin_set_dt(&cfg->nrst_gpio, 1);

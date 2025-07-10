@@ -9,44 +9,88 @@
 #include <zephyr/sys/byteorder.h>
 #include <zephyr/sys/crc.h>
 #include <zephyr/logging/log.h>
-
 #include "a320.h"
 
 LOG_MODULE_REGISTER(A320, CONFIG_SENSOR_LOG_LEVEL);
 
+/* 寄存器读取函数（带错误处理） */
 static int a320_read_reg(const struct device *dev, uint8_t reg_addr, uint8_t *value) {
     const struct a320_config *cfg = dev->config;
     int ret = i2c_reg_read_byte_dt(&cfg->bus, reg_addr, value);
-    if (ret == 0) {
-        return 0;
+    if (ret != 0) {
+        LOG_ERR("读取寄存器0x%x失败: %d", reg_addr, ret);
+        return -EIO;
     }
-    LOG_ERR("Failed to read register 0x%x: %d", reg_addr, ret);
-    return ret;
+    return 0;
 }
 
+/* 硬件复位序列 */
+static int a320_hardware_reset(const struct device *dev) {
+    const struct a320_config *cfg = dev->config;
+    int ret = 0;
+
+    #if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
+    // 关闭传感器电源（低电平有效）[6](@ref)
+    ret = gpio_pin_set_dt(&cfg->shutdown_gpio, 0);
+    if (ret < 0) {
+        LOG_ERR("关机引脚设置失败");
+        return ret;
+    }
+    k_busy_wait(100); // 100µs电容放电时间[4](@ref)
+    #endif
+
+    #if DT_INST_NODE_HAS_PROP(0, nrst_gpios)
+    // 复位脉冲（低电平10ms）[1,8](@ref)
+    ret = gpio_pin_set_dt(&cfg->nrst_gpio, 0);
+    if (ret < 0) {
+        LOG_ERR("复位引脚设置失败");
+        return ret;
+    }
+    k_msleep(10); // 精确延时确保完全复位
+    
+    // 释放复位
+    ret = gpio_pin_set_dt(&cfg->nrst_gpio, 1);
+    if (ret < 0) {
+        LOG_ERR("复位释放失败");
+        return ret;
+    }
+    #endif
+
+    #if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
+    // 重新上电
+    ret = gpio_pin_set_dt(&cfg->shutdown_gpio, 1);
+    if (ret < 0) {
+        LOG_ERR("电源启动失败");
+        return ret;
+    }
+    #endif
+
+    k_msleep(50); // 等待传感器稳定启动[3](@ref)
+    LOG_DBG("硬件复位完成");
+    return 0;
+}
+
+/* 批量数据采集（优化I2C性能） */
 static int a320_sample_fetch(const struct device *dev, enum sensor_channel chan) {
     struct a320_data *data = dev->data;
     const struct a320_config *cfg = dev->config;
-    uint8_t buf[3]; // 用于读取Motion, Delta_X, Delta_Y三个寄存器（Motion一个字节，Delta_X和Delta_Y各一个字节）
+    uint8_t buf[3]; // Motion + Delta_X + Delta_Y
 
-    if (chan != SENSOR_CHAN_ALL && chan != SENSOR_CHAN_POS_DX) {
-        return -ENOTSUP;
-    }
-
+    // 加锁保护多线程访问
     k_mutex_lock(&data->mutex, K_FOREVER);
-
-    // 使用突发读取：从Motion寄存器开始，连续读取3个字节（Motion, Delta_X, Delta_Y）
+    
+    // 突发读取3个寄存器（减少I2C事务）[3](@ref)
     int ret = i2c_burst_read_dt(&cfg->bus, Motion, buf, sizeof(buf));
     if (ret != 0) {
-        LOG_ERR("Burst read failed: %d", ret);
+        LOG_ERR("批量读取失败: %d", ret);
         k_mutex_unlock(&data->mutex);
         return ret;
     }
 
-    // 检查运动标志和溢出标志
-    uint8_t ifmotion = buf[0];
-    if ((ifmotion & BIT_MOTION_MOT) && !(ifmotion & BIT_MOTION_OVF)) {
-        // 读取到的Delta_X和Delta_Y是8位有符号数，转换为16位有符号数
+    // 解析运动状态和溢出标志
+    uint8_t motion_status = buf[0];
+    if ((motion_status & BIT_MOTION_MOT) && !(motion_status & BIT_MOTION_OVF)) {
+        // 转换8位有符号数为16位（直接缓存原始数据）
         data->x_position = (int8_t)buf[1];
         data->y_position = (int8_t)buf[2];
     } else {
@@ -58,151 +102,83 @@ static int a320_sample_fetch(const struct device *dev, enum sensor_channel chan)
     return 0;
 }
 
+/* 通道数据获取（从缓存读取） */
 static int a320_channel_get(const struct device *dev, enum sensor_channel chan,
                             struct sensor_value *val) {
     struct a320_data *data = dev->data;
-    if (chan == SENSOR_CHAN_POS_DX) {
+
+    switch (chan) {
+    case SENSOR_CHAN_POS_DX:
         val->val1 = data->x_position;
         val->val2 = 0;
         return 0;
-    } else if (chan == SENSOR_CHAN_POS_DY) {
+    case SENSOR_CHAN_POS_DY:
         val->val1 = data->y_position;
         val->val2 = 0;
         return 0;
+    default:
+        return -ENOTSUP;
     }
-    return -ENOTSUP;
 }
 
+/* 驱动API结构 */
 static const struct sensor_driver_api a320_driver_api = {
     .sample_fetch = a320_sample_fetch,
     .channel_get = a320_channel_get,
 };
 
-static int a320_hardware_reset(const struct device *dev) {
-    const struct a320_config *cfg = dev->config;
-    int ret = 0;
-
-#if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
-    // 确保关机引脚可用
-    if (gpio_is_ready_dt(&cfg->shutdown_gpio)) {
-        // 关闭传感器电源（低电平有效）
-        ret = gpio_pin_set_dt(&cfg->shutdown_gpio, 1); // 先拉高，确保可以控制
-        k_msleep(1);
-        ret = gpio_pin_set_dt(&cfg->shutdown_gpio, 0); // 拉低，关闭电源
-        if (ret < 0) {
-            LOG_ERR("Failed to set shutdown pin to low");
-            return ret;
-        }
-        k_msleep(10); // 等待完全放电
-    }
-#endif
-
-#if DT_INST_NODE_HAS_PROP(0, nrst_gpios)
-    // 确保复位引脚可用
-    if (gpio_is_ready_dt(&cfg->nrst_gpio)) {
-        // 在电源关闭期间，将复位引脚拉低
-        ret = gpio_pin_set_dt(&cfg->nrst_gpio, 0);
-        if (ret < 0) {
-            LOG_ERR("Failed to set reset pin to low");
-            return ret;
-        }
-    }
-#endif
-
-#if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
-    // 重新打开电源
-    if (gpio_is_ready_dt(&cfg->shutdown_gpio)) {
-        ret = gpio_pin_set_dt(&cfg->shutdown_gpio, 1); // 拉高，打开电源
-        if (ret < 0) {
-            LOG_ERR("Failed to set shutdown pin to high");
-            return ret;
-        }
-        k_msleep(1); // 电源稳定时间
-    }
-#endif
-
-#if DT_INST_NODE_HAS_PROP(0, nrst_gpios)
-    if (gpio_is_ready_dt(&cfg->nrst_gpio)) {
-        // 保持复位引脚低电平一段时间（复位脉冲）
-        k_msleep(10); // 复位脉冲宽度10ms
-        // 释放复位引脚（拉高）
-        ret = gpio_pin_set_dt(&cfg->nrst_gpio, 1);
-        if (ret < 0) {
-            LOG_ERR("Failed to set reset pin to high");
-            return ret;
-        }
-    }
-#endif
-
-    // 等待传感器启动
-    k_msleep(50);
-    return 0;
-}
-
+/* 设备初始化 */
 static int a320_init(const struct device *dev) {
     const struct a320_config *cfg = dev->config;
     struct a320_data *data = dev->data;
 
+    // 初始化互斥锁
+    k_mutex_init(&data->mutex);
+
+    // 检查I2C总线状态
     if (!device_is_ready(cfg->bus.bus)) {
-        LOG_ERR("I2C bus not ready");
+        LOG_ERR("I2C总线未就绪");
         return -ENODEV;
     }
 
-    k_mutex_init(&data->mutex);
-
-#if DT_INST_NODE_HAS_PROP(0, nrst_gpios)
-    if (cfg->nrst_gpio.port) {
-        if (!gpio_is_ready_dt(&cfg->nrst_gpio)) {
-            LOG_ERR("Reset GPIO device not ready");
-            return -ENODEV;
-        }
-        int ret = gpio_pin_configure_dt(&cfg->nrst_gpio, GPIO_OUTPUT_ACTIVE);
-        if (ret < 0) {
-            LOG_ERR("Failed to configure reset GPIO");
-            return ret;
-        }
+    #if DT_INST_NODE_HAS_PROP(0, nrst_gpios)
+    // 配置复位引脚
+    if (!gpio_is_ready_dt(&cfg->nrst_gpio)) {
+        LOG_ERR("复位GPIO设备未就绪");
+        return -ENODEV;
     }
-#endif
+    gpio_pin_configure_dt(&cfg->nrst_gpio, GPIO_OUTPUT_INACTIVE);
+    #endif
 
-#if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
-    if (cfg->shutdown_gpio.port) {
-        if (!gpio_is_ready_dt(&cfg->shutdown_gpio)) {
-            LOG_ERR("Shutdown GPIO device not ready");
-            return -ENODEV;
-        }
-        int ret = gpio_pin_configure_dt(&cfg->shutdown_gpio, GPIO_OUTPUT_ACTIVE);
-        if (ret < 0) {
-            LOG_ERR("Failed to configure shutdown GPIO");
-            return ret;
-        }
-        // 初始状态：打开电源（高电平）
-        ret = gpio_pin_set_dt(&cfg->shutdown_gpio, 1);
-        if (ret < 0) {
-            LOG_ERR("Failed to set shutdown pin to high");
-            return ret;
-        }
+    #if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
+    // 配置关机引脚
+    if (!gpio_is_ready_dt(&cfg->shutdown_gpio)) {
+        LOG_ERR("关机GPIO设备未就绪");
+        return -ENODEV;
     }
-#endif
+    gpio_pin_configure_dt(&cfg->shutdown_gpio, GPIO_OUTPUT_INACTIVE);
+    #endif
 
     // 执行硬件复位
     if (a320_hardware_reset(dev) != 0) {
-        LOG_ERR("Hardware reset failed");
+        LOG_ERR("硬件复位失败");
         return -EIO;
     }
 
-    LOG_DBG("A320 initialized");
+    LOG_INF("A320初始化完成");
     return 0;
 }
 
+/* 设备实例定义 */
 #define A320_DEFINE(inst)                                                                          \
-    static struct a320_data a320_data_;                                                      \
-    static const struct a320_config a320_cfg_ = {                                            \
+    static struct a320_data a320_data_##inst;                                                      \
+    static const struct a320_config a320_cfg_##inst = {                                            \
         .bus = I2C_DT_SPEC_INST_GET(inst),                                                         \
         DT_INST_GPIO_CFG_GET(inst, nrst_gpios),                                                    \
         DT_INST_GPIO_CFG_GET(inst, motion_gpios),                                                  \
         DT_INST_GPIO_CFG_GET(inst, shutdown_gpios),                                                \
     };                                                                                             \
-    DEVICE_DT_INST_DEFINE(inst, a320_init, NULL, &a320_data_, &a320_cfg_,              \
+    DEVICE_DT_INST_DEFINE(inst, a320_init, NULL, &a320_data_##inst, &a320_cfg_##inst,              \
                           POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY, &a320_driver_api);
 
 DT_INST_FOREACH_STATUS_OKAY(A320_DEFINE)

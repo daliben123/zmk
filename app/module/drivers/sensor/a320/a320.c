@@ -67,7 +67,6 @@ static void a320_motion_isr(const struct device *dev,
 }
 
 static int a320_sample_fetch(const struct device *dev, enum sensor_channel chan) {
-    // 使用中断模式，无需手动采样
     return 0;
 }
 
@@ -110,37 +109,39 @@ static int a320_init(const struct device *dev) {
     }
     
     //==== 触控板硬复位序列（基于电路图GPIO）====
-#if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
     // 配置关断引脚（GP24）
-    if (!device_is_ready(cfg->shutdown_gpio.port)) {
-        LOG_ERR("关断GPIO设备未就绪");
-        return -ENODEV;
+    if (cfg->shutdown_gpio.port != NULL) {
+        if (!device_is_ready(cfg->shutdown_gpio.port)) {
+            LOG_ERR("关断GPIO设备未就绪");
+            return -ENODEV;
+        }
+        gpio_pin_configure_dt(&cfg->shutdown_gpio, GPIO_OUTPUT_INACTIVE);
+        gpio_pin_set_dt(&cfg->shutdown_gpio, 0); // 拉低关断触控板
     }
-    gpio_pin_configure_dt(&cfg->shutdown_gpio, GPIO_OUTPUT_INACTIVE);
-    gpio_pin_set_dt(&cfg->shutdown_gpio, 0); // 拉低关断触控板
-#endif
 
-#if DT_INST_NODE_HAS_PROP(0, nrst_gpios)
     // 配置复位引脚（GP16）
-    if (!device_is_ready(cfg->nrst_gpio.port)) {
-        LOG_ERR("复位GPIO设备未就绪");
-        return -ENODEV;
+    if (cfg->reset_gpio.port != NULL) {
+        if (!device_is_ready(cfg->reset_gpio.port)) {
+            LOG_ERR("复位GPIO设备未就绪");
+            return -ENODEV;
+        }
+        gpio_pin_configure_dt(&cfg->reset_gpio, GPIO_OUTPUT_INACTIVE);
+        gpio_pin_set_dt(&cfg->reset_gpio, 0); // 拉低复位
     }
-    gpio_pin_configure_dt(&cfg->nrst_gpio, GPIO_OUTPUT_INACTIVE);
-    gpio_pin_set_dt(&cfg->nrst_gpio, 0); // 拉低复位
-#endif
 
     k_msleep(10); // 等待稳定
 
-#if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
-    gpio_pin_set_dt(&cfg->shutdown_gpio, 1); // 退出关断状态
-    k_msleep(1);
-#endif
+    // 退出关断状态
+    if (cfg->shutdown_gpio.port != NULL) {
+        gpio_pin_set_dt(&cfg->shutdown_gpio, 1);
+        k_msleep(1);
+    }
 
-#if DT_INST_NODE_HAS_PROP(0, nrst_gpios)
-    gpio_pin_set_dt(&cfg->nrst_gpio, 1); // 释放复位
-    k_msleep(100); // 等待复位完成
-#endif
+    // 释放复位
+    if (cfg->reset_gpio.port != NULL) {
+        gpio_pin_set_dt(&cfg->reset_gpio, 1);
+        k_msleep(100); // 等待复位完成
+    }
     
     //==== 设备通信验证 ====
     int pid = a320_read_reg(dev, Product_ID);
@@ -160,27 +161,27 @@ static int a320_init(const struct device *dev) {
     LOG_INF("A320初始化成功: PID=0x%02X, RID=0x%02X", pid, rid);
     
     //==== 中断配置（使用GP22）====
-#if DT_INST_NODE_HAS_PROP(0, motion_gpios)
-    if (!device_is_ready(cfg->motion_gpio.port)) {
-        LOG_ERR("动作检测GPIO设备未就绪");
-        return -ENODEV;
+    if (cfg->motion_gpio.port != NULL) {
+        if (!device_is_ready(cfg->motion_gpio.port)) {
+            LOG_ERR("动作检测GPIO设备未就绪");
+            return -ENODEV;
+        }
+        
+        // 配置为输入模式（电路图无上拉电阻，启用内部上拉）
+        gpio_pin_configure_dt(&cfg->motion_gpio, GPIO_INPUT | GPIO_PULL_UP);
+        
+        // 初始化回调
+        gpio_init_callback(&data->motion_cb, a320_motion_isr, 
+                          BIT(cfg->motion_gpio.pin));
+        
+        if (gpio_add_callback(cfg->motion_gpio.port, &data->motion_cb) < 0) {
+            LOG_ERR("回调添加失败");
+            return -EIO;
+        }
+        
+        // 配置上升沿触发（电路图高电平有效）
+        gpio_pin_interrupt_configure_dt(&cfg->motion_gpio, GPIO_INT_EDGE_RISING);
     }
-    
-    // 配置为输入模式（电路图无上拉电阻，启用内部上拉）
-    gpio_pin_configure_dt(&cfg->motion_gpio, GPIO_INPUT | GPIO_PULL_UP);
-    
-    // 初始化回调
-    gpio_init_callback(&data->motion_cb, a320_motion_isr, 
-                      BIT(cfg->motion_gpio.pin));
-    
-    if (gpio_add_callback(cfg->motion_gpio.port, &data->motion_cb) < 0) {
-        LOG_ERR("回调添加失败");
-        return -EIO;
-    }
-    
-    // 配置上升沿触发（电路图高电平有效）
-    gpio_pin_interrupt_configure_dt(&cfg->motion_gpio, GPIO_INT_EDGE_RISING);
-#endif
     
     // 初始化工作队列
     k_work_init(&data->work, a320_work_handler);
@@ -198,12 +199,11 @@ static int a320_init(const struct device *dev) {
     struct a320_data a3200_data_##inst;                                                            \
     static const struct a320_config a3200_cfg_##inst = {                                           \
         .bus = I2C_DT_SPEC_INST_GET(inst),                                                         \
-        .nrst_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, nrst_gpios, {0}),                             \
-        .motion_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, motion_gpios, {0}),                         \
-        .orient_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, orient_gpios, {0}),                         \
-        .shutdown_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, shutdown_gpios, {0})                      \
+        .reset_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, reset_gpios, {0}),                             \
+        .motion_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, motion_gpios, {0}),                           \
+        .shutdown_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, shutdown_gpios, {0})                       \
     };                                                                                             \
-    DEVICE_DT_INST_DEFINE(inst, a320_init, NULL, &a3200_data_##inst, &a3200_cfg_##inst,            \
+    DEVICE_DT_INST_DEFINE(inst, a320_init, NULL, &a3200_data_##inst, &a3200_cfg_##inst,          \
                           POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY, &a320_driver_api);
 
 // 定义GPIO_DT_SPEC_INST_GET_OR宏

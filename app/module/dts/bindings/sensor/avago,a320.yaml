@@ -6,23 +6,18 @@ properties:
   reset-gpios:
     type: phandle-array
     required: false
-    description: |
-      Hardware reset pin (active low)
-    flags:
-      - gpio-active-low  # 明确低电平有效[1,7](@ref)
-  
+    description: Hardware reset pin (active low)
+    # 删除 flags 项，改用 specifier-space 定义电平特性
+    specifier-space: gpio  # 关键修复点
+
   motion-gpios:
     type: phandle-array
     required: false
-    description: |
-      Motion detection interrupt pin (active high)
-    flags:
-      - gpio-active-high  # 高电平有效[5,9](@ref)
-  
+    description: Motion detection interrupt pin (active high)
+    specifier-space: gpio  # 关键修复点
+
   shutdown-gpios:
     type: phandle-array
     required: false
-    description: |
-      Power shutdown control pin (active low)
-    flags:
-      - gpio-active-low  # 低电平有效[1,7](@ref)
+    description: Power shutdown control pin (active low)
+    specifier-space: gpio  # 关键修复点

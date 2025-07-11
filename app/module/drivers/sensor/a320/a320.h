@@ -15,8 +15,8 @@ struct a320_data {
 
 struct a320_config {
     struct i2c_dt_spec bus;
-#if DT_INST_NODE_HAS_PROP(0, nrst_gpios)
-    struct gpio_dt_spec nrst_gpio; // 复位信号 (GP16)
+#if DT_INST_NODE_HAS_PROP(0, reset_gpios)
+    struct gpio_dt_spec reset_gpio; // 复位信号 (GP16)
 #endif
 #if DT_INST_NODE_HAS_PROP(0, motion_gpios)
     struct gpio_dt_spec motion_gpio; // 动作检测 (GP22)

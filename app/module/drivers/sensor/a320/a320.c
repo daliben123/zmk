@@ -194,18 +194,6 @@ static int a320_init(const struct device *dev) {
     return 0;
 }
 
-// 设备实例化宏
-#define A320_DEFINE(inst)                                                                          \
-    struct a320_data a3200_data_##inst;                                                            \
-    static const struct a320_config a3200_cfg_##inst = {                                           \
-        .bus = I2C_DT_SPEC_INST_GET(inst),                                                         \
-        .reset_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, reset_gpios, {0}),                             \
-        .motion_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, motion_gpios, {0}),                           \
-        .shutdown_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, shutdown_gpios, {0})                       \
-    };                                                                                             \
-    DEVICE_DT_INST_DEFINE(inst, a320_init, NULL, &a3200_data_##inst, &a3200_cfg_##inst,          \
-                          POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY, &a320_driver_api);
-
 // 定义GPIO_DT_SPEC_INST_GET_OR宏
 #ifndef GPIO_DT_SPEC_INST_GET_OR
 #define GPIO_DT_SPEC_INST_GET_OR(inst, prop, default_value) \
@@ -213,5 +201,17 @@ static int a320_init(const struct device *dev) {
                (GPIO_DT_SPEC_INST_GET(inst, prop)), \
                (default_value))
 #endif
+
+// 设备实例化宏
+#define A320_DEFINE(inst)                                                                          \
+    struct a320_data a3200_data_;                                                            \
+    static const struct a320_config a3200_cfg_ = {                                           \
+        .bus = I2C_DT_SPEC_INST_GET(inst),                                                         \
+        .reset_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, reset_gpios, {0}),                             \
+        .motion_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, motion_gpios, {0}),                           \
+        .shutdown_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, shutdown_gpios, {0})                       \
+    };                                                                                             \
+    DEVICE_DT_INST_DEFINE(inst, a320_init, NULL, &a3200_data_, &a3200_cfg_,            \
+                          POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY, &a320_driver_api);
 
 DT_INST_FOREACH_STATUS_OKAY(A320_DEFINE)

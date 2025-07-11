@@ -10,7 +10,6 @@
 
 LOG_MODULE_REGISTER(A320, CONFIG_SENSOR_LOG_LEVEL);
 
-// 寄存器读取函数
 static int a320_read_reg(const struct device *dev, uint8_t reg_addr) {
     const struct a320_config *cfg = dev->config;
     uint8_t value = 0;
@@ -25,7 +24,6 @@ static int a320_read_reg(const struct device *dev, uint8_t reg_addr) {
     return value;
 }
 
-// 寄存器写入函数
 static int a320_write_reg(const struct device *dev, uint8_t reg_addr, uint8_t value) {
     const struct a320_config *cfg = dev->config;
     int ret;
@@ -37,18 +35,16 @@ static int a320_write_reg(const struct device *dev, uint8_t reg_addr, uint8_t va
     return ret;
 }
 
-// 工作队列处理函数（中断触发时读取数据）
+/* 工作队列处理函数 (读取数据) */
 static void a320_work_handler(struct k_work *work) {
     struct a320_data *data = CONTAINER_OF(work, struct a320_data, work);
     const struct device *dev = data->dev;
     
-    // 检查运动状态
     int motion = a320_read_reg(dev, Motion);
     if (motion < 0 || !(motion & BIT_MOTION_MOT)) {
         return;
     }
     
-    // 读取原始位移数据
     int x = a320_read_reg(dev, Delta_X);
     int y = a320_read_reg(dev, Delta_Y);
     
@@ -56,26 +52,25 @@ static void a320_work_handler(struct k_work *work) {
         return;
     }
     
-    // 转换为有符号位移（符合电路图数据格式）
+    // 转换为有符号位移
     data->x_delta = (x < 128) ? x : x - 256;
     data->y_delta = (y < 128) ? y : y - 256;
     
     LOG_DBG("检测到位移: dx=%d, dy=%d", data->x_delta, data->y_delta);
 }
 
-// 中断服务函数（GP22触发）
+/* 中断服务函数 (立即响应中断) */
 static void a320_motion_isr(const struct device *dev,
                            struct gpio_callback *cb, uint32_t pins) {
     struct a320_data *data = CONTAINER_OF(cb, struct a320_data, motion_cb);
     k_work_submit(&data->work);
 }
 
-// 采样函数（中断驱动无需主动采样）
 static int a320_sample_fetch(const struct device *dev, enum sensor_channel chan) {
+    // 使用中断模式，无需手动采样
     return 0;
 }
 
-// 通道数据获取（main.c适配关键点）
 static int a320_channel_get(const struct device *dev, enum sensor_channel chan,
                             struct sensor_value *val) {
     struct a320_data *data = dev->data;
@@ -96,60 +91,58 @@ static int a320_channel_get(const struct device *dev, enum sensor_channel chan,
     }
 }
 
-// 驱动API
 static const struct sensor_driver_api a320_driver_api = {
     .sample_fetch = a320_sample_fetch,
     .channel_get = a320_channel_get,
 };
 
-// 硬件初始化序列（严格按照电路图设计）
+/* 完整的初始化序列 */
 static int a320_init(const struct device *dev) {
     const struct a320_config *cfg = dev->config;
     struct a320_data *data = dev->data;
     
     data->dev = dev;
     
-    // 初始化I2C总线（GP0_SDA, GP1_SCL）
+    // 初始化I2C总线
     if (!device_is_ready(cfg->bus.bus)) {
         LOG_ERR("I2C总线 %s 未就绪!", cfg->bus.bus->name);
         return -ENODEV;
     }
     
-    //=== 触控板电源管理序列（GP24）===
+    //==== 触控板硬复位序列（基于电路图GPIO）====
 #if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
+    // 配置关断引脚（GP24）
     if (!device_is_ready(cfg->shutdown_gpio.port)) {
         LOG_ERR("关断GPIO设备未就绪");
         return -ENODEV;
     }
     gpio_pin_configure_dt(&cfg->shutdown_gpio, GPIO_OUTPUT_INACTIVE);
-    gpio_pin_set_dt(&cfg->shutdown_gpio, 0);  // 拉低关断触控板
+    gpio_pin_set_dt(&cfg->shutdown_gpio, 0); // 拉低关断触控板
 #endif
 
-    //=== 触控板复位序列（GP16）===
 #if DT_INST_NODE_HAS_PROP(0, nrst_gpios)
+    // 配置复位引脚（GP16）
     if (!device_is_ready(cfg->nrst_gpio.port)) {
         LOG_ERR("复位GPIO设备未就绪");
         return -ENODEV;
     }
     gpio_pin_configure_dt(&cfg->nrst_gpio, GPIO_OUTPUT_INACTIVE);
-    gpio_pin_set_dt(&cfg->nrst_gpio, 0);  // 拉低复位
+    gpio_pin_set_dt(&cfg->nrst_gpio, 0); // 拉低复位
 #endif
 
-    k_msleep(10);  // 等待稳定
+    k_msleep(10); // 等待稳定
 
-    // 退出关断状态
 #if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
-    gpio_pin_set_dt(&cfg->shutdown_gpio, 1);
+    gpio_pin_set_dt(&cfg->shutdown_gpio, 1); // 退出关断状态
     k_msleep(1);
 #endif
 
-    // 释放复位
 #if DT_INST_NODE_HAS_PROP(0, nrst_gpios)
-    gpio_pin_set_dt(&cfg->nrst_gpio, 1);
-    k_msleep(100);  // 等待复位完成
+    gpio_pin_set_dt(&cfg->nrst_gpio, 1); // 释放复位
+    k_msleep(100); // 等待复位完成
 #endif
     
-    //=== 设备验证 ===
+    //==== 设备通信验证 ====
     int pid = a320_read_reg(dev, Product_ID);
     int rid = a320_read_reg(dev, Revision_ID);
     
@@ -166,7 +159,7 @@ static int a320_init(const struct device *dev) {
     
     LOG_INF("A320初始化成功: PID=0x%02X, RID=0x%02X", pid, rid);
     
-    //=== 中断配置（GP22）===
+    //==== 中断配置（使用GP22）====
 #if DT_INST_NODE_HAS_PROP(0, motion_gpios)
     if (!device_is_ready(cfg->motion_gpio.port)) {
         LOG_ERR("动作检测GPIO设备未就绪");
@@ -201,17 +194,24 @@ static int a320_init(const struct device *dev) {
 }
 
 // 设备实例化宏
-#define A320_DEFINE(inst)                                                  \
-    struct a320_data a3200_data_##inst;                                    \
-    static const struct a320_config a3200_cfg_##inst = {                   \
-        .bus = I2C_DT_SPEC_INST_GET(inst),                                 \
-        DT_INST_PROP_IF(inst, nrst_gpios, .nrst_gpio = GPIO_DT_SPEC_INST_GET(inst, nrst_gpios)),   \
-        DT_INST_PROP_IF(inst, motion_gpios, .motion_gpio = GPIO_DT_SPEC_INST_GET(inst, motion_gpios)), \
-        DT_INST_PROP_IF(inst, shutdown_gpios, .shutdown_gpio = GPIO_DT_SPEC_INST_GET(inst, shutdown_gpios)), \
-    };                                                                     \
-    DEVICE_DT_INST_DEFINE(inst, a320_init, NULL,                           \
-                          &a3200_data_##inst, &a3200_cfg_##inst,          \
-                          POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY,        \
-                          &a320_driver_api);
+#define A320_DEFINE(inst)                                                                          \
+    struct a320_data a3200_data_##inst;                                                            \
+    static const struct a320_config a3200_cfg_##inst = {                                           \
+        .bus = I2C_DT_SPEC_INST_GET(inst),                                                         \
+        .nrst_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, nrst_gpios, {0}),                             \
+        .motion_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, motion_gpios, {0}),                         \
+        .orient_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, orient_gpios, {0}),                         \
+        .shutdown_gpio = GPIO_DT_SPEC_INST_GET_OR(inst, shutdown_gpios, {0})                      \
+    };                                                                                             \
+    DEVICE_DT_INST_DEFINE(inst, a320_init, NULL, &a3200_data_##inst, &a3200_cfg_##inst,            \
+                          POST_KERNEL, CONFIG_SENSOR_INIT_PRIORITY, &a320_driver_api);
+
+// 定义GPIO_DT_SPEC_INST_GET_OR宏
+#ifndef GPIO_DT_SPEC_INST_GET_OR
+#define GPIO_DT_SPEC_INST_GET_OR(inst, prop, default_value) \
+    COND_CODE_1(DT_INST_NODE_HAS_PROP(inst, prop), \
+               (GPIO_DT_SPEC_INST_GET(inst, prop)), \
+               (default_value))
+#endif
 
 DT_INST_FOREACH_STATUS_OKAY(A320_DEFINE)

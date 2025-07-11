@@ -5,18 +5,26 @@ compatible: "avago,a320"
 include: i2c-device.yaml
 
 properties:
-  # 新增以下GPIO属性声明
-  nrst-gpios:
-    type: phandle-array
-    required: false
-    description: Hardware reset GPIO (active-low)
-  
-  shutdown-gpios:
-    type: phandle-array
-    required: false
-    description: Power control GPIO (active-high)
-  
-  motion-gpios:
-    type: phandle-array
-    required: false
-    description: Motion detection interrupt GPIO
+    nrst-gpios:
+      type: phandle-array
+      required: false
+      description: |
+        nrst pin
+
+    motion-gpios:
+      type: phandle-array
+      required: false
+      description: |
+        motion pin
+
+    orient-gpios:
+      type: phandle-array
+      required: false
+      description: |
+        orient pin
+
+    shutdown-gpios:
+      type: phandle-array
+      required: false
+      description: |
+        shutdown pin

@@ -5,7 +5,7 @@
         reg = <0x3B>;
         reset-gpios = <&gpio1 0 GPIO_ACTIVE_LOW>;  // 复位引脚
         motion-gpios = <&gpio1 7 GPIO_ACTIVE_HIGH>; // 运动中断引脚
-        shutdown-gpios= <&gpio0 22 GPIO_ACTIVE_LOW>; // 休眠引脚
+        shutdown-gpios= <&gpio0 22 GPIO_ACTIVE_HIGH>; // 休眠引脚
         
     };
     

@@ -15,15 +15,9 @@ struct a320_data {
 
 struct a320_config {
     struct i2c_dt_spec bus;
-#if DT_INST_NODE_HAS_PROP(0, reset_gpios)
-    struct gpio_dt_spec reset_gpio; // 复位信号 (GP16)
-#endif
-#if DT_INST_NODE_HAS_PROP(0, motion_gpios)
-    struct gpio_dt_spec motion_gpio; // 动作检测 (GP22)
-#endif
-#if DT_INST_NODE_HAS_PROP(0, shutdown_gpios)
-    struct gpio_dt_spec shutdown_gpio; // 关断控制 (GP24)
-#endif
+    struct gpio_dt_spec reset_gpio;    // 始终包含GPIO成员
+    struct gpio_dt_spec motion_gpio;   // 不再使用条件编译
+    struct gpio_dt_spec shutdown_gpio; // 使用GPIO_DT_SPEC_INST_GET_OR初始化
 };
 
 // A320寄存器定义

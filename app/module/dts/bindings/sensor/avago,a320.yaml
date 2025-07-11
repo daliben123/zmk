@@ -1,8 +1,8 @@
-# 路径：/__w/bbq20/bbq20/zmk/app/module/dts/bindings/sensor/avago,a320.yaml
+description: Avago A320 TouchPad Driver
 
-description: Avago A320 Motion Sensor
 compatible: "avago,a320"
-include: [sensor.yaml]
+
+include: i2c-device.yaml
 
 properties:
   # 新增以下GPIO属性声明

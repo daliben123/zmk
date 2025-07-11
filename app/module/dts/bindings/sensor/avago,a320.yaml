@@ -1,22 +1,22 @@
+# 路径：/__w/bbq20/bbq20/zmk/app/module/dts/bindings/sensor/avago,a320.yaml
 
-description: Avago A320 TouchPad Driver
-
+description: Avago A320 Motion Sensor
 compatible: "avago,a320"
-
-include: i2c-device.yaml
+include: [sensor.yaml]
 
 properties:
-  nrst_gpios:
+  # 新增以下GPIO属性声明
+  nrst-gpios:
     type: phandle-array
     required: false
-    description: Hardware reset GPIO pin
-    
-  motion_gpios:
+    description: Hardware reset GPIO (active-low)
+  
+  shutdown-gpios:
     type: phandle-array
     required: false
-    description: Motion detection GPIO pin
-    
-  shutdown_gpios:
+    description: Power control GPIO (active-high)
+  
+  motion-gpios:
     type: phandle-array
     required: false
-    description: Power shutdown control GPIO pin
+    description: Motion detection interrupt GPIO

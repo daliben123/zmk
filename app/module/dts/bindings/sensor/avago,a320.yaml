@@ -18,12 +18,6 @@ properties:
       description: |
         motion pin
 
-    orient-gpios:
-      type: phandle-array
-      required: false
-      description: |
-        orient pin
-
     shutdown-gpios:
       type: phandle-array
       required: false

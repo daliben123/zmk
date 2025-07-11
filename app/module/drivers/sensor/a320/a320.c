@@ -1,4 +1,3 @@
-
 #define DT_DRV_COMPAT avago_a320
 
 #include <zephyr/device.h>

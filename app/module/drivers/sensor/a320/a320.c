@@ -11,13 +11,6 @@ LOG_MODULE_REGISTER(a320, CONFIG_SENSOR_LOG_LEVEL);
 /* 设备树兼容标识符（唯一在.c文件中定义） */
 #define DT_DRV_COMPAT avago_a320
 
-/* 寄存器定义（与头文件一致） */
-#define A320_PRODUCT_ID_REG  0x00
-#define A320_MOTION_REG      0x02
-#define A320_DELTA_X_REG     0x03
-#define A320_DELTA_Y_REG     0x04
-#define A320_EXPECTED_ID     0x58
-
 /* 状态掩码 */
 #define BIT_MOTION_MOT  (1 << 0)  // 运动检测标志[2](@ref)
 #define BIT_MOTION_OVF  (1 << 4)  // 数据溢出标志
@@ -32,10 +25,8 @@ struct a320_data {
 };
 
 /* 设备配置结构 */
-struct a320_config {
-    struct i2c_dt_spec bus;           // I²C总线
-    struct gpio_dt_spec nrst_gpio;    // 复位引脚（低电平有效）
-};
+struct a320_config;
+
 
 /* 硬件复位序列 */
 static int a320_hardware_reset(const struct device *dev) {

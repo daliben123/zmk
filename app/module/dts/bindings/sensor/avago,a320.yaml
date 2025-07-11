@@ -1,25 +1,28 @@
-
 description: Avago A320 TouchPad Driver
-
 compatible: "avago,a320"
-
 include: i2c-device.yaml
 
 properties:
-    reset-gpios:
-      type: phandle-array
-      required: false
-      description: |
-        nrst pin
-
-    motion-gpios:
-      type: phandle-array
-      required: false
-      description: |
-        motion pin
-
-    shutdown-gpios:
-      type: phandle-array
-      required: false
-      description: |
-        shutdown pin
+  reset-gpios:
+    type: phandle-array
+    required: false
+    description: |
+      Hardware reset pin (active low)
+    flags:
+      - gpio-active-low  # 明确低电平有效[1,7](@ref)
+  
+  motion-gpios:
+    type: phandle-array
+    required: false
+    description: |
+      Motion detection interrupt pin (active high)
+    flags:
+      - gpio-active-high  # 高电平有效[5,9](@ref)
+  
+  shutdown-gpios:
+    type: phandle-array
+    required: false
+    description: |
+      Power shutdown control pin (active low)
+    flags:
+      - gpio-active-low  # 低电平有效[1,7](@ref)

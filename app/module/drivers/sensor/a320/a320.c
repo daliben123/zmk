@@ -153,7 +153,7 @@ static int a320_init(const struct device *dev) {
     }
     
     // 根据A320数据手册调整验证值
-    if (pid != 0x32 || rid != 0x01) {
+    if (pid != 0x83 || rid != 0x01) {
         LOG_ERR("无效设备ID: PID=0x%02X, RID=0x%02X", pid, rid);
         return -EIO;
     }

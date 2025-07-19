@@ -179,8 +179,8 @@ static int a320_init(const struct device *dev) {
             return -EIO;
         }
         
-        // 配置上升沿触发（电路图高电平有效）
-        gpio_pin_interrupt_configure_dt(&cfg->motion_gpio, GPIO_INT_EDGE_TO_ACTIVE);
+        // 修改为下降沿触发（原为上升沿触发）
+        gpio_pin_interrupt_configure_dt(&cfg->motion_gpio, GPIO_INT_EDGE_TO_INACTIVE);
     }
     
     // 初始化工作队列

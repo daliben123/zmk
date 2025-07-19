@@ -117,6 +117,7 @@ static int a320_init(const struct device *dev) {
         }
         gpio_pin_configure_dt(&cfg->shutdown_gpio, GPIO_OUTPUT_INACTIVE);
         gpio_pin_set_dt(&cfg->shutdown_gpio, 0); // 拉低关断触控板
+        k_msleep(10); // 增加延迟与Pico代码一致
     }
 
     // 配置复位引脚（GP16）
@@ -127,20 +128,12 @@ static int a320_init(const struct device *dev) {
         }
         gpio_pin_configure_dt(&cfg->reset_gpio, GPIO_OUTPUT_INACTIVE);
         gpio_pin_set_dt(&cfg->reset_gpio, 0); // 拉低复位
-    }
-
-    k_msleep(10); // 等待稳定
-
-    // 退出关断状态
-    if (cfg->shutdown_gpio.port != NULL) {
-        gpio_pin_set_dt(&cfg->shutdown_gpio, 1);
-        k_msleep(1);
-    }
-
-    // 释放复位
-    if (cfg->reset_gpio.port != NULL) {
-        gpio_pin_set_dt(&cfg->reset_gpio, 1);
-        k_msleep(100); // 等待复位完成
+        k_msleep(100); // 增加延迟与Pico代码一致
+        gpio_pin_set_dt(&cfg->reset_gpio, 1); // 释放复位
+        k_msleep(10); // 增加延迟与Pico代码一致
+    } else {
+        // 如果没有复位引脚，添加一个默认延迟
+        k_msleep(100);
     }
     
     //==== 设备通信验证 ====
@@ -154,11 +147,11 @@ static int a320_init(const struct device *dev) {
     
     // 根据A320数据手册调整验证值
     if (pid != 0x83 || rid != 0x01) {
-        LOG_ERR("无效设备ID: PID=0x%02X, RID=0x%02X", pid, rid);
-        return -EIO;
+        LOG_WRN("非标准A320设备: PID=0x%02X, RID=0x%02X", pid, rid);
+        // 允许非标准设备继续初始化，提高兼容性
+    } else {
+        LOG_INF("A320初始化成功: PID=0x%02X, RID=0x%02X", pid, rid);
     }
-    
-    LOG_INF("A320初始化成功: PID=0x%02X, RID=0x%02X", pid, rid);
     
     //==== 中断配置（使用GP22）====
     if (cfg->motion_gpio.port != NULL) {
@@ -179,7 +172,7 @@ static int a320_init(const struct device *dev) {
             return -EIO;
         }
         
-        // 修改为下降沿触发（原为上升沿触发）
+        // 修改为下降沿触发（与Pico代码一致）
         gpio_pin_interrupt_configure_dt(&cfg->motion_gpio, GPIO_INT_EDGE_TO_INACTIVE);
     }
     
@@ -189,6 +182,7 @@ static int a320_init(const struct device *dev) {
     // 清空初始数据
     data->x_delta = 0;
     data->y_delta = 0;
+    data->last_swipe_time = k_uptime_get(); // 初始化滑动时间戳
     
     LOG_INF("触控板驱动初始化完成");
     return 0;

@@ -182,7 +182,6 @@ static int a320_init(const struct device *dev) {
     // 清空初始数据
     data->x_delta = 0;
     data->y_delta = 0;
-    data->last_swipe_time = k_uptime_get(); // 初始化滑动时间戳
     
     LOG_INF("触控板驱动初始化完成");
     return 0;

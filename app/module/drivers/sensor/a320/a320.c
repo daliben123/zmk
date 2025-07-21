@@ -35,7 +35,7 @@ static int a320_write_reg(const struct device *dev, uint8_t reg_addr, uint8_t va
     return ret;
 }
 
-/* 工作队列处理函数 (读取数据) */
+/* 工作队列处理函数 (读取数据并清零寄存器) */
 static void a320_work_handler(struct k_work *work) {
     struct a320_data *data = CONTAINER_OF(work, struct a320_data, work);
     const struct device *dev = data->dev;
@@ -57,6 +57,10 @@ static void a320_work_handler(struct k_work *work) {
     data->y_delta = (y < 128) ? y : y - 256;
     
     LOG_DBG("检测到位移: dx=%d, dy=%d", data->x_delta, data->y_delta);
+
+    // 写入Motion寄存器清除位移数据（符合A320手册要求）
+    // 写入任意值均可清除MOT标志和Delta_X/Delta_Y寄存器
+    a320_write_reg(dev, Motion, 0x00);
 }
 
 /* 中断服务函数 (立即响应中断) */
@@ -73,17 +77,24 @@ static int a320_sample_fetch(const struct device *dev, enum sensor_channel chan)
 static int a320_channel_get(const struct device *dev, enum sensor_channel chan,
                             struct sensor_value *val) {
     struct a320_data *data = dev->data;
+    // 临时保存当前值用于返回，随后清零缓存
+    int x = data->x_delta;
+    int y = data->y_delta;
     
     switch (chan) {
     case SENSOR_CHAN_POS_DX:  // X位移
-        val->val1 = data->x_delta;
+        val->val1 = x;
+        data->x_delta = 0;  // 读取后清零缓存
         return 0;
     case SENSOR_CHAN_POS_DY:  // Y位移
-        val->val1 = data->y_delta;
+        val->val1 = y;
+        data->y_delta = 0;  // 读取后清零缓存
         return 0;
     case SENSOR_CHAN_AMBIENT_TEMP:  // MAIN.C适配点
-        val->val1 = data->y_delta;  // Y -> val1 (main.c需要)
-        val->val2 = data->x_delta;  // X -> val2 (main.c需要)
+        val->val1 = y;
+        val->val2 = x;
+        data->x_delta = 0;  // 读取后清零缓存
+        data->y_delta = 0;
         return 0;
     default:
         return -ENOTSUP;

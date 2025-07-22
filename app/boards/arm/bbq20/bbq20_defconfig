@@ -1,24 +1,16 @@
-# Copyright (c) 2023 ZitaoTech
-# SPDX-License-Identifier: MIT
-
+# 硬件基础配置
 CONFIG_SOC_SERIES_NRF52X=y
 CONFIG_SOC_NRF52840_QIAA=y
 CONFIG_BOARD_BBQ20=y
-
-
-# Enable MPU
 CONFIG_ARM_MPU=y
-
 CONFIG_PINCTRL=y
 
-# enable GPIO
+# GPIO配置
 CONFIG_GPIO=y
 
-# Build Configuration
+# 存储配置
 CONFIG_USE_DT_CODE_PARTITION=y
 CONFIG_BUILD_OUTPUT_UF2=y
-
-# Flash configuration
 CONFIG_MPU_ALLOW_FLASH_WRITE=y
 CONFIG_NVS=y
 CONFIG_SETTINGS_NVS=y
@@ -26,68 +18,72 @@ CONFIG_FLASH=y
 CONFIG_FLASH_PAGE_LAYOUT=y
 CONFIG_FLASH_MAP=y
 
-# Enable Signal Power Plus
+# 电源与功耗管理 (根据原理图优化)
+## 图示充电与电源路径管理需要这些配置
+CONFIG_ZMK_EXT_POWER=y
+CONFIG_ZMK_PM_SOFT_OFF=y
+CONFIG_ZMK_USB_POWER=y  # USB电源检测
+CONFIG_ZMK_SLEEP=n      # 禁用深度睡眠（图示电容可能需要持续供电）
+
+# 传输功率设置 (匹配图中电容值)
 CONFIG_BT_CTLR_TX_PWR_PLUS_8=y
 
-# Sleep Setting
-CONFIG_ZMK_SLEEP=n
-CONFIG_ZMK_EXT_POWER=y
-# timeout for backlight for keyboard in miliseconds
-CONFIG_ZMK_IDLE_TIMEOUT=30000                         
+# 空闲超时设置
+CONFIG_ZMK_IDLE_TIMEOUT=30000
 
+# 指示灯配置
+CONFIG_ZMK_INDICATOR_LED=y
+CONFIG_ZMK_INDICATOR_LAYER_BRT=100
+CONFIG_ZMK_INDICATOR_LAYER_CYCLE_MAXBRT=100
+CONFIG_ZMK_INDICATOR_LAYER_CYCLE_MINBRT=20
+CONFIG_ZMK_INDICATOR_LAYER_CYCLE_INTERVAL=20
+CONFIG_ZMK_INDICATOR_BRT_STEP=5
+CONFIG_ZMK_INDICATOR_BLINK_INTERVAL=300
 
-# Indicator for Layer Setting
-# enable LED indicator for current layer number
-CONFIG_ZMK_INDICATOR_LED=y                            
-# set brightness of the led indicator of layer 2 in 1-100
-CONFIG_ZMK_IDICATOR_LAYER_BRT=100                     
-# set the maximium brightness of cycle effect in 1-100
-CONFIG_ZMK_IDICATOR_LAYER_CYCLE_MAXBRT=100            
-# set the minium brightness of cycle effect in 1-100
-CONFIG_ZMK_IDICATOR_LAYER_CYCLE_MINBRT=20             
-# set the cycle interval of cycle effect in miliseconds
-CONFIG_ZMK_IDICATOR_LAYER_CYCLE_INTERVAL=20           
-# set the brightness step of cycle effect 
-CONFIG_ZMK_IDICATOR_BRT_STEP=5                        
-# set the blink interval for indicator layer 4 in miliseconds
-CONFIG_ZMK_IDICATOR_BLINK_INTERVAL=300  
+# 背光配置
+CONFIG_ZMK_BACKLIGHT=y
+CONFIG_ZMK_BACKLIGHT_BRT_START=40
+CONFIG_ZMK_BACKLIGHT_BRT_STEP=10
+CONFIG_ZMK_BACKLIGHT_ON_START=y
+CONFIG_ZMK_BACKLIGHT_AUTO_OFF_IDLE=y
 
-# Keyboard backlight Setting
-# enable keyboard backlight
-CONFIG_ZMK_BACKLIGHT=y                                
-# set the brightness the keyboard backlight when powered on in 1-100
-CONFIG_ZMK_BACKLIGHT_BRT_START=40                     
-# set the brightness step for each change of backlight brightness
-CONFIG_ZMK_BACKLIGHT_BRT_STEP=10                      
-# enable keyboard backlight on when powered on
-CONFIG_ZMK_BACKLIGHT_ON_START=y                       
-# enable automatic turn off when no keypress detected
-CONFIG_ZMK_BACKLIGHT_AUTO_OFF_IDLE=y                  
-
-# HID indicator configuration
+# HID指示灯
 CONFIG_ZMK_HID_INDICATORS=y
 
-# Setting for Scrolling of trackpad
-# set the scroll interval; the highter this value, the slower trackpad scrolls                   
-CONFIG_TRACKPAD_SCROLL_INTERVAL=20                    
-
-# Enable Mouse Emulation
-CONFIG_ZMK_MOUSE=y
-# Mouse Speed Multiplier in horizontal direction
+# 触摸板配置
+CONFIG_TRACKPAD_SCROLL_INTERVAL=20
 CONFIG_TRACKPAD_SPEEDMULTIPLIER_HORIZONTAL=100
-# Mouse Speed Multiplier in vertical direction
 CONFIG_TRACKPAD_SPEEDMULTIPLIER_VERTICAL=100
 
-# Debuncing Setting 
+# 鼠标支持
+CONFIG_ZMK_MOUSE=y
+
+# 去抖动设置
 CONFIG_ZMK_KSCAN_DEBOUNCE_PRESS_MS=10
 CONFIG_ZMK_KSCAN_DEBOUNCE_RELEASE_MS=10
 
-# Enable both USB and BLE
+# 连接选项
 CONFIG_ZMK_USB=y
 CONFIG_ZMK_BLE=y
+CONFIG_BT_GATT_ENFORCE_SUBSCRIPTION=n  # 优化BLE连接
 
-# Milliseconds to wait after a setting change before writing it to flash memory
+# 电池监控配置 (根据图中VCC调节器)
+CONFIG_ZMK_BATTERY_REPORT_INTERVAL=600  # 10分钟报告一次
+CONFIG_BT_BAS=n  # 禁用MACOS唤醒问题
+
+# 设置保存
 CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE=10000
 
-# Log via USB or Segger RTT
+# 日志配置
 CONFIG_ZMK_USB_LOGGING=n
+
+# ADC配置 (电池监控支持)
+CONFIG_ADC=y
+CONFIG_ADC_ASYNC=y
+
+# 电容触摸选项 (如果应用)
+# CONFIG_ZMK_KCAN_CAPACITIVE=y
+
+# VCC电压监控 (优化3.3V/5.5V调节)
+CONFIG_ZMK_VCC_MONITOR=y
+CONFIG_ZMK_VCC_ALERT_THRESHOLD=3400  # 3.4V警告

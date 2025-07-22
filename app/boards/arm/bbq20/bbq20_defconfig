@@ -38,7 +38,7 @@ CONFIG_ZMK_IDLE_TIMEOUT=30000
 
 # Indicator for Layer Setting
 # enable LED indicator for current layer number
-CONFIG_ZMK_INDICATOR_LED=y                            
+CONFIG_ZMK_INDICATOR_LED=n                            
 # set brightness of the led indicator of layer 2 in 1-100
 CONFIG_ZMK_IDICATOR_LAYER_BRT=100                     
 # set the maximium brightness of cycle effect in 1-100
@@ -85,9 +85,6 @@ CONFIG_ZMK_KSCAN_DEBOUNCE_RELEASE_MS=10
 # Enable both USB and BLE
 CONFIG_ZMK_USB=y
 CONFIG_ZMK_BLE=y
-CONFIG_ZMK_BATTERY_REPORTING=y
-CONFIG_ZMK_BATTERY_REPORT_INTERVAL=300
-CONFIG_BT_BAS=n
 
 # Milliseconds to wait after a setting change before writing it to flash memory
 CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE=10000

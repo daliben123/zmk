@@ -26,16 +26,6 @@
         zmk,backlight = &backlight;
     };
 
-    gpio_keys {
-        compatible = "gpio-keys";
-        single_key: single_key {
-            label = "SINGLE_KEY";
-            gpios = <&gpio0 9 (GPIO_ACTIVE_LOW | GPIO_PULL_UP )>;
-            debounce-interval = <10>; // 10ms消抖
-            zephyr,code = <INPUT_KEY_F13>; // 绑定键值
-        };
-    };
-
     backlight: pwmleds {
         compatible = "pwm-leds";
         pwm_led_0 {

@@ -30,7 +30,7 @@
         compatible = "gpio-keys";
         single_key: single_key {
             label = "SINGLE_KEY";
-            gpios = <&gpio0 9 (GPIO_ACTIVE_LOW | GPIO_PULL_UP | GPIO_INT_EDGE_BOTH)>;
+            gpios = <&gpio0 9 (GPIO_ACTIVE_LOW | GPIO_PULL_UP )>;
             debounce-interval = <10>; // 10ms消抖
             zephyr,code = <INPUT_KEY_F13>; // 绑定键值
         };

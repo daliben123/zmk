@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2023 ZitaoTech
  *
@@ -21,7 +22,7 @@
         zephyr,flash = &flash0;
         zephyr,console = &cdc_acm_uart;
         zmk,kscan = &kscan0;
-        //zmk,battery = &vbatt;
+        zmk,battery = &vbatt;
         zmk,matrix_transform = &default_transform;
         zmk,backlight = &backlight;
     };
@@ -71,14 +72,14 @@ RC(2,3)          RC(2,1)             RC(3,1)             RC(4,1)          RC(6,2
 // Node name must match original "EXT_POWER" label to preserve user settings.
     EXT_POWER {
         compatible = "zmk,ext-power-generic";
-        control-gpios = <&gpio0 13 (GPIO_ACTIVE_LOW | GPIO_PULL_UP)>;
-        init-delay-ms = <200>;
+        control-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+        init-delay-ms = <50>;
     };
 
 
-  //vbatt: vbatt {
-        //compatible = "zmk,battery-nrf-vddh";
-    //};
+  vbatt: vbatt {
+        compatible = "zmk,battery-nrf-vddh";
+    };
 };
 
 &adc {

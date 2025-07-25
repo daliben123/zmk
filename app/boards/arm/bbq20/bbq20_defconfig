@@ -56,7 +56,7 @@ CONFIG_ZMK_IDICATOR_BLINK_INTERVAL=300
 # enable keyboard backlight
 CONFIG_ZMK_BACKLIGHT=y                                
 # set the brightness the keyboard backlight when powered on in 1-100
-CONFIG_ZMK_BACKLIGHT_BRT_START=30                     
+CONFIG_ZMK_BACKLIGHT_BRT_START=40                     
 # set the brightness step for each change of backlight brightness
 CONFIG_ZMK_BACKLIGHT_BRT_STEP=10                      
 # enable keyboard backlight on when powered on
@@ -85,13 +85,12 @@ CONFIG_ZMK_KSCAN_DEBOUNCE_RELEASE_MS=10
 # Enable both USB and BLE
 CONFIG_ZMK_USB=y
 CONFIG_ZMK_BLE=y
+CONFIG_ZMK_BATTERY_REPORTING=y
+CONFIG_ZMK_BATTERY_REPORT_INTERVAL=300
+CONFIG_BT_BAS=n
 
 # Milliseconds to wait after a setting change before writing it to flash memory
 CONFIG_ZMK_SETTINGS_SAVE_DEBOUNCE=10000
 
 # Log via USB or Segger RTT
 CONFIG_ZMK_USB_LOGGING=n
-
-CONFIG_BT_BAS=y
-CONFIG_ZMK_BATTERY_REPORTING=y
-CONFIG_ZMK_BATTERY_REPORT_INTERVAL=300

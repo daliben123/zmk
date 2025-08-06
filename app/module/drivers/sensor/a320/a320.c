@@ -58,8 +58,6 @@ static void a320_work_handler(struct k_work *work) {
     
     LOG_DBG("检测到位移: dx=%d, dy=%d", data->x_delta, data->y_delta);
 
-    // 写入Motion寄存器清除位移数据（符合A320手册要求）
-    // 写入任意值均可清除MOT标志和Delta_X/Delta_Y寄存器
     a320_write_reg(dev, Motion, 0x00);
 }
 
@@ -119,8 +117,7 @@ static int a320_init(const struct device *dev) {
         return -ENODEV;
     }
     
-    //==== 触控板硬复位序列（基于电路图GPIO）====
-    // 配置关断引脚（GP24）
+    // 配置关断引脚
     if (cfg->shutdown_gpio.port != NULL) {
         if (!device_is_ready(cfg->shutdown_gpio.port)) {
             LOG_ERR("关断GPIO设备未就绪");
@@ -128,10 +125,10 @@ static int a320_init(const struct device *dev) {
         }
         gpio_pin_configure_dt(&cfg->shutdown_gpio, GPIO_OUTPUT_INACTIVE);
         gpio_pin_set_dt(&cfg->shutdown_gpio, 0); // 拉低关断触控板
-        k_msleep(10); // 增加延迟与Pico代码一致
+        k_msleep(10); 
     }
 
-    // 配置复位引脚（GP16）
+    // 配置复位引脚
     if (cfg->reset_gpio.port != NULL) {
         if (!device_is_ready(cfg->reset_gpio.port)) {
             LOG_ERR("复位GPIO设备未就绪");
@@ -139,9 +136,9 @@ static int a320_init(const struct device *dev) {
         }
         gpio_pin_configure_dt(&cfg->reset_gpio, GPIO_OUTPUT_INACTIVE);
         gpio_pin_set_dt(&cfg->reset_gpio, 0); // 拉低复位
-        k_msleep(100); // 增加延迟与Pico代码一致
+        k_msleep(100); 
         gpio_pin_set_dt(&cfg->reset_gpio, 1); // 释放复位
-        k_msleep(10); // 增加延迟与Pico代码一致
+        k_msleep(10); 
     } else {
         // 如果没有复位引脚，添加一个默认延迟
         k_msleep(100);
@@ -164,7 +161,7 @@ static int a320_init(const struct device *dev) {
         LOG_INF("A320初始化成功: PID=0x%02X, RID=0x%02X", pid, rid);
     }
     
-    //==== 中断配置（使用GP22）====
+    //==== 中断配置====
     if (cfg->motion_gpio.port != NULL) {
         if (!device_is_ready(cfg->motion_gpio.port)) {
             LOG_ERR("动作检测GPIO设备未就绪");
@@ -183,7 +180,7 @@ static int a320_init(const struct device *dev) {
             return -EIO;
         }
         
-        // 修改为下降沿触发（与Pico代码一致）
+        // 修改为下降沿触发
         gpio_pin_interrupt_configure_dt(&cfg->motion_gpio, GPIO_INT_EDGE_TO_INACTIVE);
     }
     

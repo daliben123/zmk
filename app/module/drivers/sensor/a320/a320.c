@@ -117,7 +117,8 @@ static int a320_init(const struct device *dev) {
         return -ENODEV;
     }
     
-    // 配置关断引脚
+       // 关键修改：模拟VDDA先于DVDD上电的序列
+    // 步骤1: 确保传感器完全关闭
     if (cfg->shutdown_gpio.port != NULL) {
         if (!device_is_ready(cfg->shutdown_gpio.port)) {
             LOG_ERR("关断GPIO设备未就绪");
@@ -128,22 +129,34 @@ static int a320_init(const struct device *dev) {
         k_msleep(10); 
     }
 
-    // 配置复位引脚
+    // 步骤2: 保持复位状态
     if (cfg->reset_gpio.port != NULL) {
         if (!device_is_ready(cfg->reset_gpio.port)) {
             LOG_ERR("复位GPIO设备未就绪");
             return -ENODEV;
         }
         gpio_pin_configure_dt(&cfg->reset_gpio, GPIO_OUTPUT_INACTIVE);
-        gpio_pin_set_dt(&cfg->reset_gpio, 0); // 拉低复位
-        k_msleep(100); 
-        gpio_pin_set_dt(&cfg->reset_gpio, 1); // 释放复位
-        k_msleep(10); 
+        gpio_pin_set_dt(&cfg->reset_gpio, 0); // 保持复位状态
+    }
+
+    // 步骤3: 模拟VDDA上电（通过关断引脚）
+    if (cfg->shutdown_gpio.port != NULL) {
+        gpio_pin_set_dt(&cfg->shutdown_gpio, 1); // 释放关断，相当于VDDA上电
+        LOG_INF("模拟VDDA上电");
+        k_msleep(100); // 等待VDDA稳定（tVRT最大100ms）
+    }
+
+    // 步骤4: 模拟DVDD上电（通过复位引脚）
+    if (cfg->reset_gpio.port != NULL) {
+        k_msleep(10); // 短暂延迟
+        gpio_pin_set_dt(&cfg->reset_gpio, 1); // 释放复位，相当于DVDD上电
+        LOG_INF("模拟DVDD上电");
+        k_msleep(25); // 等待tMOT-RST（最大23ms）
     } else {
         // 如果没有复位引脚，添加一个默认延迟
-        k_msleep(100);
+        k_msleep(120);
     }
-    
+
     //==== 设备通信验证 ====
     int pid = a320_read_reg(dev, Product_ID);
     int rid = a320_read_reg(dev, Revision_ID);

@@ -141,7 +141,7 @@ static int a320_init(const struct device *dev) {
 
     // 步骤3: 模拟VDDA上电（通过关断引脚）
     if (cfg->shutdown_gpio.port != NULL) {
-        gpio_pin_set_dt(&cfg->shutdown_gpio, 1); // 释放关断，相当于VDDA上电
+        gpio_pin_set_dt(&cfg->shutdown_gpio, 0); // 释放关断，相当于VDDA上电
         LOG_INF("模拟VDDA上电");
         k_msleep(100); // 等待VDDA稳定（tVRT最大100ms）
     }

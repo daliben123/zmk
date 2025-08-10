@@ -14,20 +14,20 @@ static int a320_read_reg(const struct device *dev, uint8_t reg_addr) {
     const struct a320_config *cfg = dev->config;
     uint8_t value = 0;
     int ret;
-    
+
     ret = i2c_reg_read_byte_dt(&cfg->bus, reg_addr, &value);
     if (ret < 0) {
         LOG_ERR("寄存器读取失败 0x%x (错误 %d)", reg_addr, ret);
         return ret;
     }
-    
+
     return value;
 }
 
 static int a320_write_reg(const struct device *dev, uint8_t reg_addr, uint8_t value) {
     const struct a320_config *cfg = dev->config;
     int ret;
-    
+
     ret = i2c_reg_write_byte_dt(&cfg->bus, reg_addr, value);
     if (ret < 0) {
         LOG_ERR("寄存器写入失败 0x%x (错误 %d)", reg_addr, ret);
@@ -39,23 +39,23 @@ static int a320_write_reg(const struct device *dev, uint8_t reg_addr, uint8_t va
 static void a320_work_handler(struct k_work *work) {
     struct a320_data *data = CONTAINER_OF(work, struct a320_data, work);
     const struct device *dev = data->dev;
-    
+
     int motion = a320_read_reg(dev, Motion);
     if (motion < 0 || !(motion & BIT_MOTION_MOT)) {
         return;
     }
-    
+
     int x = a320_read_reg(dev, Delta_X);
     int y = a320_read_reg(dev, Delta_Y);
-    
+
     if (x < 0 || y < 0) {
         return;
     }
-    
+
     // 转换为有符号位移
     data->x_delta = (x < 128) ? x : x - 256;
     data->y_delta = (y < 128) ? y : y - 256;
-    
+
     LOG_DBG("检测到位移: dx=%d, dy=%d", data->x_delta, data->y_delta);
 
     a320_write_reg(dev, Motion, 0x00);
@@ -78,7 +78,7 @@ static int a320_channel_get(const struct device *dev, enum sensor_channel chan,
     // 临时保存当前值用于返回，随后清零缓存
     int x = data->x_delta;
     int y = data->y_delta;
-    
+
     switch (chan) {
     case SENSOR_CHAN_POS_DX:  // X位移
         val->val1 = x;
@@ -108,64 +108,61 @@ static const struct sensor_driver_api a320_driver_api = {
 static int a320_init(const struct device *dev) {
     const struct a320_config *cfg = dev->config;
     struct a320_data *data = dev->data;
-    
+
     data->dev = dev;
-    
+
     // 初始化I2C总线
     if (!device_is_ready(cfg->bus.bus)) {
         LOG_ERR("I2C总线 %s 未就绪!", cfg->bus.bus->name);
         return -ENODEV;
     }
-    
-       // 关键修改：模拟VDDA先于DVDD上电的序列
-    // 步骤1: 确保传感器完全关闭
+
+    // 配置关断引脚
+
     if (cfg->shutdown_gpio.port != NULL) {
         if (!device_is_ready(cfg->shutdown_gpio.port)) {
             LOG_ERR("关断GPIO设备未就绪");
-            return -ENODEV;
-        }
-        gpio_pin_configure_dt(&cfg->shutdown_gpio, GPIO_OUTPUT_INACTIVE);
-        gpio_pin_set_dt(&cfg->shutdown_gpio, 0); // 拉低关断触控板
+@@ -128,91 +129,103 @@
         k_msleep(10); 
     }
 
-    // 步骤2: 保持复位状态
+    // 配置复位引脚
     if (cfg->reset_gpio.port != NULL) {
         if (!device_is_ready(cfg->reset_gpio.port)) {
             LOG_ERR("复位GPIO设备未就绪");
             return -ENODEV;
         }
         gpio_pin_configure_dt(&cfg->reset_gpio, GPIO_OUTPUT_INACTIVE);
-        gpio_pin_set_dt(&cfg->reset_gpio, 0); // 保持复位状态
-    }
+        gpio_pin_set_dt(&cfg->reset_gpio, 0); // 拉低复位
+        k_msleep(100); 
+        gpio_pin_set_dt(&cfg->reset_gpio, 1); // 释放复位
+        k_msleep(10); 
 
-    // 步骤3: 模拟VDDA上电（通过关断引脚）
-    if (cfg->shutdown_gpio.port != NULL) {
-        gpio_pin_set_dt(&cfg->shutdown_gpio, 0); // 释放关断，相当于VDDA上电
-        LOG_INF("模拟VDDA上电");
-        k_msleep(100); // 等待VDDA稳定（tVRT最大100ms）
-    }
 
-    // 步骤4: 模拟DVDD上电（通过复位引脚）
-    if (cfg->reset_gpio.port != NULL) {
-        k_msleep(10); // 短暂延迟
-        gpio_pin_set_dt(&cfg->reset_gpio, 1); // 释放复位，相当于DVDD上电
-        LOG_INF("模拟DVDD上电");
-        k_msleep(25); // 等待tMOT-RST（最大23ms）
+
+
+
+
+
+
+
+
+
+
     } else {
         // 如果没有复位引脚，添加一个默认延迟
-        k_msleep(120);
+        k_msleep(100);
     }
-
+    
     //==== 设备通信验证 ====
     int pid = a320_read_reg(dev, Product_ID);
     int rid = a320_read_reg(dev, Revision_ID);
-    
+
     if (pid < 0 || rid < 0) {
         LOG_ERR("设备ID读取失败");
         return -EIO;
     }
-    
+
     // 根据A320数据手册调整验证值
     if (pid != 0x83 || rid != 0x01) {
         LOG_WRN("非标准A320设备: PID=0x%02X, RID=0x%02X", pid, rid);
@@ -173,37 +170,37 @@ static int a320_init(const struct device *dev) {
     } else {
         LOG_INF("A320初始化成功: PID=0x%02X, RID=0x%02X", pid, rid);
     }
-    
+
     //==== 中断配置====
     if (cfg->motion_gpio.port != NULL) {
         if (!device_is_ready(cfg->motion_gpio.port)) {
             LOG_ERR("动作检测GPIO设备未就绪");
             return -ENODEV;
         }
-        
+
         // 配置为输入模式（电路图无上拉电阻，启用内部上拉）
         gpio_pin_configure_dt(&cfg->motion_gpio, GPIO_INPUT | GPIO_PULL_UP);
-        
+
         // 初始化回调
         gpio_init_callback(&data->motion_cb, a320_motion_isr, 
                           BIT(cfg->motion_gpio.pin));
-        
+
         if (gpio_add_callback(cfg->motion_gpio.port, &data->motion_cb) < 0) {
             LOG_ERR("回调添加失败");
             return -EIO;
         }
-        
+
         // 修改为下降沿触发
         gpio_pin_interrupt_configure_dt(&cfg->motion_gpio, GPIO_INT_EDGE_TO_INACTIVE);
     }
-    
+
     // 初始化工作队列
     k_work_init(&data->work, a320_work_handler);
-    
+
     // 清空初始数据
     data->x_delta = 0;
     data->y_delta = 0;
-    
+
     LOG_INF("触控板驱动初始化完成");
     return 0;
 }

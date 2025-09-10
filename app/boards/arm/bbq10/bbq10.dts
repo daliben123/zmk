@@ -6,13 +6,14 @@
 
 /dts-v1/;
 #include <nordic/nrf52840_qiaa.dtsi>
+
 #include <dt-bindings/led/led.h>
 #include <dt-bindings/zmk/matrix_transform.h>
 #include "bbq10-pinctrl.dtsi"
 
 / {
     model = "bbq10";
-    compatible = "XixiLee-boom,bbq10";
+    compatible = "ZitaoTech,bbq20";
 
     chosen {
         zephyr,code-partition = &code_partition;
@@ -21,6 +22,7 @@
         zephyr,console = &cdc_acm_uart;
         zmk,kscan = &kscan0;
         zmk,battery = &vbatt;
+        zmk,matrix_transform = &default_transform;
         zmk,backlight = &backlight;
     };
 

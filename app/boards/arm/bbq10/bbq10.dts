@@ -22,7 +22,6 @@
         zmk,kscan = &kscan0;
         zmk,battery = &vbatt;
         zmk,backlight = &backlight;
-        zmk,physical-layout = &layout_0;
     };
 
     backlight: pwmleds {

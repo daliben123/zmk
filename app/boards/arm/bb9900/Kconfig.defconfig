@@ -26,4 +26,4 @@ endif # ZMK_BACKLIGHT
 config BT_CTLR
     default BT
 
-endif # BOARD_BBQ20
+endif # BOARD_BB9900

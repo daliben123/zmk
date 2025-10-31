@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2023 ZitaoTech
+ * Copyright (c) 2025 daliben123
  *
  * SPDX-License-Identifier: MIT
  */
@@ -13,7 +13,7 @@
 
 / {
     model = "bb9900";
-    compatible = "ZitaoTech,bb9900";
+    compatible = "daliben123,bb9900";
 
     chosen {
         zephyr,code-partition = &code_partition;
@@ -22,32 +22,17 @@
         zephyr,console = &cdc_acm_uart;
         zmk,battery = &vbatt;
         zmk,kscan = &kscan0;
-        zmk,matrix_transform = &default_transform;
-        zmk,led_indicator = &indi_led_indicator;
-        zmk_indicator_capslock= &indi_capslock_indicator;
+        zmk,matrix_transform = &default_transform;;
         zmk,backlight = &backlight;
-    };
-
-    indi_capslock_indicator:  pwmledo {
-        compatible = "pwm-leds";
-        pwm_led_0 {
-            pwms = <&pwm2 0 PWM_USEC(20) PWM_POLARITY_NORMAL>;
-        };
-    };
-
-    indi_led_indicator: pwmledt {
-        compatible = "pwm-leds";
-        pwm_led_0 {
-            pwms = <&pwm0 0 PWM_USEC(20) PWM_POLARITY_NORMAL>;
-        };
     };
 
     backlight: pwmleds {
         compatible = "pwm-leds";
         pwm_led_0 {
-            pwms = <&pwm1 0 PWM_MSEC(10) PWM_POLARITY_NORMAL>;
+            pwms = <&pwm0 0 PWM_MSEC(10) PWM_POLARITY_NORMAL>;
         };
     };
+
 
     default_transform: keymap_transform_0 {
         compatible = "zmk,matrix-transform";
@@ -67,40 +52,34 @@ RC(2,3)          RC(2,1)             RC(3,1)             RC(4,1)          RC(6,2
         compatible = "zmk,kscan-gpio-matrix";
         diode-direction = "col2row";
         row-gpios
-            = <&gpio0 6 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio0 8  (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio0 31 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio0 15  (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio0 29  (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio0 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
-            , <&gpio1 13 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            = <&gpio0 8 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio0 24 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio0 11 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 4  (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 6  (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 1 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
+            , <&gpio1 2 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             ;
         col-gpios
-            = <&gpio1 11  GPIO_ACTIVE_HIGH>
-            , <&gpio1 6  GPIO_ACTIVE_HIGH>
-            , <&gpio1 4  GPIO_ACTIVE_HIGH>
-            , <&gpio0 17 GPIO_ACTIVE_HIGH>
-            , <&gpio0 20 GPIO_ACTIVE_HIGH>
-            , <&gpio0 24 GPIO_ACTIVE_HIGH>
+            = <&gpio0 29  GPIO_ACTIVE_HIGH>
+            , <&gpio0 2  GPIO_ACTIVE_HIGH>
+            , <&gpio1 15  GPIO_ACTIVE_HIGH>
+            , <&gpio1 13 GPIO_ACTIVE_HIGH>
+            , <&gpio1 11 GPIO_ACTIVE_HIGH>
+            , <&gpio0 10 GPIO_ACTIVE_HIGH>
             ;
     };
-
-    leds {
-        compatible = "gpio-leds";
-        blue_led: led_0 {
-            gpios = <&gpio0 10 GPIO_ACTIVE_HIGH>;
-        };
-    };
-
-    // Node name must match original "EXT_POWER" label to preserve user settings.
+ // Node name must match original "EXT_POWER" label to preserve user settings.
     EXT_POWER {
         compatible = "zmk,ext-power-generic";
-        control-gpios = <&gpio0 13 GPIO_ACTIVE_LOW>;
+        control-gpios = <&gpio0 13 GPIO_ACTIVE_HIGH>;
+        init-delay-ms = <50>;
     };
 
-    vbatt: vbatt {
+
+  vbatt: vbatt {
         compatible = "zmk,battery-voltage-divider";
-        io-channels = <&adc 2>;
+        io-channels = <&adc 7>;
         output-ohms = <2000000>;
         full-ohms = <(2000000 + 820000)>;
     };
@@ -128,21 +107,6 @@ RC(2,3)          RC(2,1)             RC(3,1)             RC(4,1)          RC(6,2
     pinctrl-1 = <&pwm0_sleep>;
     pinctrl-names = "default", "sleep";
 };
-
-&pwm1 {
-    status = "okay";
-    pinctrl-0 = <&pwm1_default>;
-    pinctrl-1 = <&pwm1_sleep>;
-    pinctrl-names = "default", "sleep";
-};
-
-&pwm2 {
-    status = "okay";
-    pinctrl-0 = <&pwm2_default>;
-    pinctrl-1 = <&pwm2_sleep>;
-    pinctrl-names = "default", "sleep";
-};
-
 
 &usbd {
     status = "okay";

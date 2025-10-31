@@ -13,7 +13,7 @@
 
 / {
     model = "bbq20";
-    compatible = "ZitaoTech,bbq20";
+    compatible = "daliben123,bbq20";
 
     chosen {
         zephyr,code-partition = &code_partition;

@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2020 The ZMK Contributors
  *
@@ -66,8 +65,8 @@ int main(void) {
         char target_bbcase[] = "bbcase";
         if (strcmp(CONFIG_ZMK_KEYBOARD_NAME, target_9900) == 0 ||
             strcmp(CONFIG_ZMK_KEYBOARD_NAME, target_bbcase) == 0) {
-            int8_t x = xy_pos.val2;
-            int8_t y = xy_pos.val1;
+            int8_t x = xy_pos.val1;
+            int8_t y = xy_pos.val2;
             int8_t scroll_x = 0;
             int8_t scroll_y = 0;
             if (zmk_hid_indicators_get_current_profile() == 2 ||

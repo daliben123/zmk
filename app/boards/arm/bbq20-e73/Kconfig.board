@@ -1,6 +1,6 @@
 # Copyright (c) 2025 daliben123
 # SPDX-License-Identifier: MIT
 
-config BOARD_BBQ20
+config BOARD_BBQ20-E73
     bool "bbq20"
     depends on SOC_NRF52840_QIAA

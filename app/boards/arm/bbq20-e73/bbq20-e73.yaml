@@ -1,5 +1,5 @@
-identifier: bbq20
-name: bbq20
+identifier: bbq20-e73
+name: bbq20-e73
 type: mcu
 arch: arm
 toolchain:

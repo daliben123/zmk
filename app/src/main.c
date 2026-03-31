@@ -63,6 +63,7 @@ int main(void) {
         char target_9981[] = "bbp9981";
         char target_9983[] = "bbp9983";
         char target_bbcase[] = "bbcase";
+        char target_q20_e73[] = "bbq20-e73";
         if (strcmp(CONFIG_ZMK_KEYBOARD_NAME, target_9900) == 0 ||
             strcmp(CONFIG_ZMK_KEYBOARD_NAME, target_bbcase) == 0) {
             int8_t x = xy_pos.val1;
@@ -156,7 +157,8 @@ int main(void) {
             zmk_hid_mouse_scroll_set(0, 0);
             zmk_hid_mouse_scroll_update(scroll_x, scroll_y);
             zmk_endpoints_send_mouse_report();
-        } else if (strcmp(CONFIG_ZMK_KEYBOARD_NAME, target_q20) == 0) {
+        } else if (strcmp(CONFIG_ZMK_KEYBOARD_NAME, target_q20) == 0 || 
+                   strcmp(CONFIG_ZMK_KEYBOARD_NAME, target_q20_e73) == 0) {
             int8_t x = -1 * xy_pos.val2;
             int8_t y =  xy_pos.val1;
             // LOG_DBG("x value : %d , y value : %d\r\n", val->val1, val->val2);

@@ -46,7 +46,10 @@ RC(2,3)          RC(2,1)             RC(3,1)             RC(4,1)          RC(6,2
         >; 
     };
 
-    row-gpios
+     kscan0: kscan {
+        compatible = "zmk,kscan-gpio-matrix";
+        diode-direction = "col2row";
+        row-gpios
             = <&gpio1 11 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             , <&gpio1 10 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
             , <&gpio0 3 (GPIO_ACTIVE_HIGH | GPIO_PULL_DOWN)>
@@ -64,6 +67,7 @@ RC(2,3)          RC(2,1)             RC(3,1)             RC(4,1)          RC(6,2
             , <&gpio1 6 GPIO_ACTIVE_HIGH>
             , <&gpio0 9 GPIO_ACTIVE_HIGH>
             ;
+    };
 
 // Node name must match original "EXT_POWER" label to preserve user settings.
     EXT_POWER {
